@@ -26,6 +26,7 @@ import java.util.*;				/*For enumeration*/
 public class IJGrower implements PlugIn {
 	private int[] seedPoints;
 	private double diffLimit;
+	private boolean threeD;
     public void run(String arg) {
         ImagePlus imp = WindowManager.getCurrentImage();
         /*Check that an image was open*/
@@ -68,6 +69,7 @@ public class IJGrower implements PlugIn {
 		
 		/*Construct the segmented mask*/
 		double [][][] mask3D = new double[width][height][depth];	/*Initialized to zero by Java as default*/
+		double [][][] segmentationMask;
 		/*Create Seed volume, experimentally chosen....*/
 		for (int d = seedPoints[4]; d < seedPoints[5]; ++d) {
 			for (int r = seedPoints[2];r<seedPoints[3];++r){
@@ -77,10 +79,38 @@ public class IJGrower implements PlugIn {
 			}
         }
 		/*Grow stack*/
-		RegionGrow3D r3d = new RegionGrow3D(image3D, mask3D, diffLimit);
+		if (threeD){	/*3D region grow*/
+			RegionGrow3D r3d = new RegionGrow3D(image3D, mask3D, diffLimit);
+			segmentationMask = r3d.segmentationMask;
+		}else{			/*2D region grow*/
+			segmentationMask = new double[width][height][depth];	/*Create the segmentation mask*/
+			/*Go through all of the slices*/
+			double[][] sliceData = new double[width][height];
+			double[][] sliceMask = new double[width][height];
+			for (int d = 0; d < depth; ++d) {
+				/*Get the slice*/
+				for (int r = 0;r<height;++r){
+					for (int c = 0;c<width;++c){
+						sliceData[r][c] = image3D[r][c][d];
+						sliceMask[r][c] = mask3D[r][c][d];
+					}
+				}
+				/*Run the region growing*/
+				RegionGrow r2d = new RegionGrow(sliceData,sliceMask,diffLimit);
+				/*Copy the mask result to mask3D*/
+				sliceMask = r2d.segmentationMask;
+				for (int r = 0;r<height;++r){
+					for (int c = 0;c<width;++c){
+						segmentationMask[r][c][d]=sliceMask[r][c];
+					}
+				}
+			}
+		}
+		
+		
 		/*Visualize result*/
 		Calibration calibration = imp.getCalibration();
-        ImagePlus resultStack = createOutputStack(r3d.segmentationMask, calibration);
+        ImagePlus resultStack = createOutputStack(segmentationMask, calibration);
 		resultStack.show();
     }
 	
@@ -138,6 +168,7 @@ public class IJGrower implements PlugIn {
 		gd.addNumericField("zHigh", 12, 0);
         gd.addMessage("Maximum difference");
         gd.addNumericField("maxDiff", 100, 0);
+		gd.addCheckbox("3D", false);
 
         gd.showDialog();
 
@@ -149,7 +180,8 @@ public class IJGrower implements PlugIn {
 		for (int i = 0; i<seedPoints.length;++i){
 			seedPoints[i] = (int) gd.getNextNumber();
 		}
-        diffLimit = gd.getNextNumber();
+        diffLimit	= gd.getNextNumber();
+		threeD		= gd.getNextBoolean();
 
         return true;
     }
