@@ -101,7 +101,9 @@ public class IJGrower implements PlugIn {
 				/*Run the region growing*/
 				meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
 				r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
+				System.out.println("Eroding");
 				r2d.erodeMask();	/*Try to remove spurs...*/
+				System.out.println("Eroded");
 				/*Copy the mask result to mask3D*/
 				for (int r = 0;r<height;++r){
 					for (int c = 0;c<width;++c){
