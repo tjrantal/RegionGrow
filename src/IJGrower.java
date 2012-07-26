@@ -66,7 +66,9 @@ public class IJGrower implements PlugIn {
 			}
         }
 		
+		
 		/*Check image properties*/
+		/*
 		IJ.log("Start acquiring properties");
 		Properties properties = imp.getProperties();
 		String[] props = (String[]) properties.stringPropertyNames().toArray();
@@ -74,14 +76,16 @@ public class IJGrower implements PlugIn {
 		for (int i = 0;i<props.length;++i){
 			IJ.log(props[i]);
 		}
-       
+       */
 
 		/*Construct the segmented mask*/
 		Calibration calibration = imp.getCalibration();
 		FileInfo fi = new FileInfo();
 		try { fi = imp.getOriginalFileInfo();}
 		catch (NullPointerException npe){IJ.error("Couldn't get fileInfo");} 
-
+		
+		IJ.log("File Info");
+		IJ.log(fi.info);
 		
 		
 		double [][][] mask3D = new double[width][height][depth];	/*Initialized to zero by Java as default*/
@@ -96,13 +100,12 @@ public class IJGrower implements PlugIn {
 		/*Grow stack*/
 		RegionGrow3D r3d = new RegionGrow3D(image3D, mask3D, diffLimit);
 		/*Visualize result*/
-        ImageStack resultStack = createOutputStack(r3d.segmentationMask, calibration,fi);
-		//resultStack.update(imp.getProcessor());
-        new ImagePlus("Region", resultStack).show();
+        ImagePlus resultStack = createOutputStack(r3d.segmentationMask, calibration,fi,imp);
+		resultStack.show();
     }
 	
 	/*Visual mask result*/
-	private ImageStack createOutputStack(double[][][] mask3d, Calibration calibration,FileInfo fi) {
+	private ImagePlus createOutputStack(double[][][] mask3d, Calibration calibration,FileInfo fi,ImagePlus imp) {
 		int width	=mask3d[0].length;
 		int height	=mask3d.length;
 		int depth	=mask3d[0][0].length;
@@ -110,23 +113,93 @@ public class IJGrower implements PlugIn {
         int pixels = width*height;
 		
 		/*Set stack image dimensions according to the original dimensions...*/
-		/*
-		IJ.log("XUnit "+calibration.getXUnit());
-		IJ.log("XUnit "+calibration.getYUnit());
-		IJ.log("XUnit "+calibration.getZUnit());
-		*/
+
 		IJ.log("FI pixelW "+fi.pixelWidth);
 		IJ.log("FI pixelH "+fi.pixelHeight);
 		IJ.log("FI pixelD "+fi.pixelDepth);
 		IJ.log("FI W "+fi.width);
 		IJ.log("FI H "+fi.height);
+		IJ.log("Cal pixelW "+calibration.pixelWidth);
+		IJ.log("Cal pixelH "+calibration.pixelHeight);
+		IJ.log("Cal pixelD "+calibration.pixelDepth);
 		
-		/*
-		Calibration stackCal = new Calibration();
-		stackCal.setXUnit(calibration.getXUnit());
-		stackCal.setYUnit(calibration.getYUnit());
-		stackCal.setZUnit(calibration.getZUnit());
-		*/
+
+		
+		
+
+        /*Create file info string for properties*/
+		String[] propertyNames = {"Pixel Width","Pixel Height","Voxel Depth","Pixel Spacing"};
+		String[] propertyValues = {Double.toString(fi.pixelWidth),Double.toString(fi.pixelHeight),Double.toString(fi.pixelDepth),Double.toString(fi.pixelWidth)};
+		double[] doublePropertyValues = {fi.pixelWidth,fi.pixelHeight,fi.pixelDepth,fi.pixelWidth};
+		String properties = new String();
+		for (int i = 0;i<propertyNames.length;++i){
+			properties += propertyNames[i]+": "+propertyValues[i]+"\n";
+		}
+		
+		
+		
+		
+        for (int d = 0; d < depth; ++d) {
+			/*Create image*/
+			ImagePlus impS = NewImage.createByteImage("Stack "+d,width,height,1,NewImage.FILL_BLACK);
+			
+			/*Set Calibration*/
+			Calibration stackCal = impS.getCalibration();
+			stackCal.pixelWidth = fi.pixelWidth;
+			stackCal.pixelHeight  = fi.pixelHeight;
+			stackCal.pixelDepth  = fi.pixelDepth;
+			stackCal.setUnit("mm");
+			stackCal.disableDensityCalibration();
+			impS.setCalibration(stackCal);
+			
+			/*Set FileInfo*/
+			FileInfo fiS = new FileInfo();
+			fiS.pixelWidth = fi.pixelWidth;
+			fiS.pixelHeight = fi.pixelHeight;
+			fiS.pixelDepth = fi.pixelDepth;
+			fiS.width = fi.width;
+			fiS.height = fi.height;
+			fiS.valueUnit = "mm";
+			fiS.fileFormat = fiS.RAW;
+			fiS.compression = fiS.COMPRESSION_NONE;
+			fiS.fileType = fiS.GRAY8;	//
+			fiS.info = properties;	
+			impS.setFileInfo(fiS);
+			
+			/*Set porperties*/
+			impS.setProperty("Info", properties);
+			for (int i = 0;i<propertyNames.length;++i){
+				impS.setProperty(propertyNames[i],doublePropertyValues[i]);
+			}
+            
+			/*Set Pixels*/
+			byte[] slicePixels = (byte[]) impS.getProcessor().getPixels();
+			for (int r = 0;r<height;++r){
+				for (int c = 0;c<width;++c){
+					if (mask3d[r][c][d] < 0.5){
+						slicePixels[c+r*width] = 0;
+					}else{
+						slicePixels[c+r*width] = (byte) 0xff;
+					}
+				}
+			}
+			//impS.setDisplayRange( 0, 127);
+			IJ.log("Slice "+d+" isScaled "+impS.getCalibration().scaled());
+            resultStack.addSlice(impS.getProcessor());
+			resultStack.update(impS.getProcessor());
+        }
+		ImagePlus returnStack = new ImagePlus("Region", resultStack);
+		
+		/*Set Calibration*/
+		Calibration stackCal = returnStack.getCalibration();
+		stackCal.pixelWidth = fi.pixelWidth;
+		stackCal.pixelHeight  = fi.pixelHeight;
+		stackCal.pixelDepth  = fi.pixelDepth;
+		stackCal.setUnit("mm");
+		stackCal.disableDensityCalibration();
+		returnStack.setCalibration(stackCal);
+		
+		/*Set FileInfo*/
 		FileInfo fiS = new FileInfo();
 		fiS.pixelWidth = fi.pixelWidth;
 		fiS.pixelHeight = fi.pixelHeight;
@@ -137,31 +210,16 @@ public class IJGrower implements PlugIn {
 		fiS.fileFormat = fiS.RAW;
 		fiS.compression = fiS.COMPRESSION_NONE;
 		fiS.fileType = fiS.GRAY8;	//
-        /*Create file info string for properties*/
-		String[] propertyNames = {"Pixel Width","Pixel Height","Voxel Depth"};
-		String[] propertyValues = {Double.toString(fi.pixelWidth),Double.toString(fi.pixelHeight),Double.toString(fi.pixelDepth)};
-		String properties = new String();
+		fiS.info = properties;	
+		returnStack.setFileInfo(fiS);
+		
+		/*Set porperties*/
+		returnStack.setProperty("Info", properties);
 		for (int i = 0;i<propertyNames.length;++i){
-			properties += propertyNames[i]+": "+propertyValues[i]+"\n";
+			returnStack.setProperty(propertyNames[i],doublePropertyValues[i]);
 		}
-		fiS.info = properties;
 		
-		
-		
-        for (int d = 0; d < depth; ++d) {
-			ImagePlus impS = NewImage.createByteImage("Stack "+d,width,height,1,NewImage.FILL_BLACK);
-			//impS.setCalibration(stackCal);
-			impS.setFileInfo(fiS);
-			impS.setProperty("Info", properties);
-            byte[] slicePixels = (byte[]) impS.getProcessor().getPixels();
-			for (int r = 0;r<height;++r){
-				for (int c = 0;c<width;++c){
-					slicePixels[c+r*width] = (byte) (mask3d[r][c][d]*127.0);
-				}
-			}
-            resultStack.addSlice(impS.getProcessor());
-        }
-        return resultStack;
+        return returnStack;
     }
 
     /**
