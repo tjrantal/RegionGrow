@@ -102,10 +102,9 @@ public class IJGrower implements PlugIn {
 				meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
 				r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
 				r2d.fillVoids(); //Fill void
-				System.out.println("Eroding");
+				//System.out.println("Eroding");
 				r2d.erodeMask();	/*Try to remove spurs...*/
-				r2d.erodeMask();	/*Try to remove spurs...*/
-				System.out.println("Eroded");
+				//System.out.println("Eroded");
 				/*Copy the mask result to mask3D*/
 				for (int r = 0;r<height;++r){
 					for (int c = 0;c<width;++c){
@@ -116,7 +115,7 @@ public class IJGrower implements PlugIn {
 			
 			/*Grow up down too*/
 			if(growUpDown){
-				IJ.log("Into UD");
+				//IJ.log("Into UD");
 				/*Go through all of the slices*/
 				sliceData = new double[width][depth];
 				sliceMask = new double[width][depth];
@@ -133,7 +132,6 @@ public class IJGrower implements PlugIn {
 					meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
 					r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
 					r2d.fillVoids(); //Fill void
-					r2d.erodeMask();	/*Try to remove spurs...*/
 					r2d.erodeMask();	/*Try to remove spurs...*/
 					/*Copy the mask result to mask3D*/
 					for (int d = 0; d < depth; ++d) {
