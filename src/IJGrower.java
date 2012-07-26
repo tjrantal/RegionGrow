@@ -12,8 +12,12 @@ import ij.ImageStack;
 import ij.WindowManager;
 import ij.gui.GenericDialog;
 import ij.plugin.PlugIn;
-
-
+import ij.measure.Calibration;	/*For obtaining pixel dimensions from original stack...*/
+import ij.gui.NewImage;			/*For creating the output stack images*/
+import ij.process.ImageProcessor;		/*For setting output stack image properties*/
+import ij.io.FileInfo;			/*For setting image voxel dimensions...*/
+import java.util.Properties;	/*For getting image properties*/
+import java.util.*;				/*For enumeration*/
 /*
  Performs connected region growing. User is asked to provide the seed area points.
  Result is displayed as a binary image. Works with 3D images stack.
@@ -62,7 +66,24 @@ public class IJGrower implements PlugIn {
 			}
         }
 		
+		/*Check image properties*/
+		IJ.log("Start acquiring properties");
+		Properties properties = imp.getProperties();
+		String[] props = (String[]) properties.stringPropertyNames().toArray();
+		IJ.log("Got properties");
+		for (int i = 0;i<props.length;++i){
+			IJ.log(props[i]);
+		}
+       
+
 		/*Construct the segmented mask*/
+		Calibration calibration = imp.getCalibration();
+		FileInfo fi = new FileInfo();
+		try { fi = imp.getOriginalFileInfo();}
+		catch (NullPointerException npe){IJ.error("Couldn't get fileInfo");} 
+
+		
+		
 		double [][][] mask3D = new double[width][height][depth];	/*Initialized to zero by Java as default*/
 		/*Create Seed volume, experimentally chosen....*/
 		for (int d = seedPoints[4]; d < seedPoints[5]; ++d) {
@@ -72,30 +93,73 @@ public class IJGrower implements PlugIn {
 				}
 			}
         }
-		
+		/*Grow stack*/
 		RegionGrow3D r3d = new RegionGrow3D(image3D, mask3D, diffLimit);
-		
-        ImageStack resultStack = createOutputStack(r3d.segmentationMask);
-
+		/*Visualize result*/
+        ImageStack resultStack = createOutputStack(r3d.segmentationMask, calibration,fi);
+		//resultStack.update(imp.getProcessor());
         new ImagePlus("Region", resultStack).show();
     }
 	
 	/*Visual mask result*/
-	private ImageStack createOutputStack(double[][][] mask3d) {
+	private ImageStack createOutputStack(double[][][] mask3d, Calibration calibration,FileInfo fi) {
 		int width	=mask3d[0].length;
 		int height	=mask3d.length;
 		int depth	=mask3d[0][0].length;
         ImageStack resultStack = new ImageStack(width, height);
         int pixels = width*height;
+		
+		/*Set stack image dimensions according to the original dimensions...*/
+		/*
+		IJ.log("XUnit "+calibration.getXUnit());
+		IJ.log("XUnit "+calibration.getYUnit());
+		IJ.log("XUnit "+calibration.getZUnit());
+		*/
+		IJ.log("FI pixelW "+fi.pixelWidth);
+		IJ.log("FI pixelH "+fi.pixelHeight);
+		IJ.log("FI pixelD "+fi.pixelDepth);
+		IJ.log("FI W "+fi.width);
+		IJ.log("FI H "+fi.height);
+		
+		/*
+		Calibration stackCal = new Calibration();
+		stackCal.setXUnit(calibration.getXUnit());
+		stackCal.setYUnit(calibration.getYUnit());
+		stackCal.setZUnit(calibration.getZUnit());
+		*/
+		FileInfo fiS = new FileInfo();
+		fiS.pixelWidth = fi.pixelWidth;
+		fiS.pixelHeight = fi.pixelHeight;
+		fiS.pixelDepth = fi.pixelDepth;
+		fiS.width = fi.width;
+		fiS.height = fi.height;
+		fiS.valueUnit = "mm";
+		fiS.fileFormat = fiS.RAW;
+		fiS.compression = fiS.COMPRESSION_NONE;
+		fiS.fileType = fiS.GRAY8;	//
+        /*Create file info string for properties*/
+		String[] propertyNames = {"Pixel Width","Pixel Height","Voxel Depth"};
+		String[] propertyValues = {Double.toString(fi.pixelWidth),Double.toString(fi.pixelHeight),Double.toString(fi.pixelDepth)};
+		String properties = new String();
+		for (int i = 0;i<propertyNames.length;++i){
+			properties += propertyNames[i]+": "+propertyValues[i]+"\n";
+		}
+		fiS.info = properties;
+		
+		
+		
         for (int d = 0; d < depth; ++d) {
-            byte[] slicePixels = new byte[pixels];
-			
+			ImagePlus impS = NewImage.createByteImage("Stack "+d,width,height,1,NewImage.FILL_BLACK);
+			//impS.setCalibration(stackCal);
+			impS.setFileInfo(fiS);
+			impS.setProperty("Info", properties);
+            byte[] slicePixels = (byte[]) impS.getProcessor().getPixels();
 			for (int r = 0;r<height;++r){
 				for (int c = 0;c<width;++c){
 					slicePixels[c+r*width] = (byte) (mask3d[r][c][d]*127.0);
 				}
 			}
-            resultStack.addSlice(null, slicePixels);
+            resultStack.addSlice(impS.getProcessor());
         }
         return resultStack;
     }
