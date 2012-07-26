@@ -50,7 +50,7 @@ public class RegionGrow3D{
 	
 	private void growRegion(){
 		/*Init variables and add seed points to the queue*/
-		pixelQueue	= new PriorityQueue<NextPixel>();
+		pixelQueue	= new PriorityQueue<NextPixel>(1000000);
 		rowCount	= dataSlice.length;
 		columnCount	= dataSlice[0].length;
 		depthCount	= dataSlice[0][0].length;
@@ -173,7 +173,41 @@ public class RegionGrow3D{
 		return sum;
 	}
 	
-
+	
+	public static double[] getCurrentMeanAndArea(double[][][] segmentationMask, double[][][] dataSlice){
+		int[][] indices = findStatic(segmentationMask);
+		double sum = 0;
+		for (int i = 0; i<indices.length; ++i){
+			sum+= dataSlice[indices[i][0]][indices[i][1]][indices[i][2]];
+		}
+		sum/=((double) indices.length);
+		double[] returnValue = {sum, (double) indices.length};
+		return returnValue;
+	}
+	
+	public static int[][] findStatic(double[][][] matrix){
+		int[][] temp = new int[matrix.length*matrix[0].length][3];
+		int found = 0;
+		for (int i = 0; i< matrix.length;++i){
+			for (int j = 0; j< matrix[i].length;++j){
+				for (int k = 0; k< matrix[i][j].length;++k){
+					if (matrix[i][j][k] > 0.5){
+						temp[found][0] = i;
+						temp[found][1] = j;
+						temp[found][2] = k;
+						++found;					
+					}
+				}
+			}
+		}
+		int[][] indices = new int[found][3];
+		for (int i = 0; i<found; ++i){
+			for (int j = 0; j< 3; ++j){
+				indices[i][j] = temp[i][j];
+			}
+		}
+		return indices;
+	}
 
    /*Next Pixel for pixel queue, comparable enables always getting the smallest value*/
 	class NextPixel implements Comparable<NextPixel> {

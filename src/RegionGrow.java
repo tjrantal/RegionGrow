@@ -13,20 +13,22 @@ public class RegionGrow{
 	private double[][] dataSlice;
 	public double[][] segmentationMask;
 	private double maxDiff;
+	public boolean success;
 	
 	/*Global variables, saves effort in declaring functions...*/
 	private int rowCount;
 	private int columnCount;
 	private byte[][] visited;
 	private double currentMean;
+	private long maskArea;
 	private PriorityQueue<NextPixel> pixelQueue;
 	/*Constructor for default maxDiff*/
 	public RegionGrow(double[][] dataSlice, double[][] segmentationMask){
 		this.dataSlice = dataSlice;
 		this.segmentationMask = segmentationMask;
 		this.maxDiff = 250.0;
-		System.out.println("Constructor w/o");
-		growRegion();
+		currentMean = getCurrentMean();
+		success = growRegion();
 	}
 	
 	/*Constructor with maxDiff*/
@@ -34,23 +36,30 @@ public class RegionGrow{
 		this.dataSlice = dataSlice;
 		this.segmentationMask = segmentationMask;
 		this.maxDiff = maxDiff;
-		System.out.println("Constructor w");
-		growRegion();
+		currentMean = getCurrentMean();
+		success = growRegion();
 	}
 	
-	private void growRegion(){
+	/*Constructor with maxDiff, mean and area*/
+	public RegionGrow(double[][] dataSlice, double[][] segmentationMask, double maxDiff, double currentMean, long maskArea){
+		this.dataSlice = dataSlice;
+		this.segmentationMask = segmentationMask;
+		this.maxDiff = maxDiff;
+		this.currentMean = currentMean;
+		this.maskArea = maskArea;
+		success  = growRegion();
+	}
+	
+	private boolean growRegion(){
 		/*Init variables and add seed points to the queue*/
 		pixelQueue = new PriorityQueue<NextPixel>();
 		rowCount = dataSlice.length;
 		columnCount = dataSlice[0].length;
 		visited = new byte[rowCount][columnCount];
-		
-		currentMean = getCurrentMean();
-			
-		System.out.println("Start Init");
+
 		/*Init pixelQueue*/
 		int[][] seedIndices = find(segmentationMask);
-
+		if (seedIndices == null){return false;}
 		for (int i = 0; i<seedIndices.length; ++i){
 			int[] coordinates = {seedIndices[i][0],seedIndices[i][1]};
 			pixelQueue.add(new NextPixel(Math.abs(dataSlice[seedIndices[i][0]][seedIndices[i][1]]-currentMean),coordinates));
@@ -58,8 +67,6 @@ public class RegionGrow{
 		
 		/*Grow Region*/
 		NextPixel nextPixel;
-		System.out.println("Start Growing");
-		long maskArea = seedIndices.length;
 		int[][] neighbourhood = new int[4][2];
 		int[] coordinates;
 		while (pixelQueue.size() > 0){ //Go through all cells in queue
@@ -99,7 +106,7 @@ public class RegionGrow{
 			}
         
 		}
-		
+		return true;
 	}
 	
 	/*Update pixel queue*/
@@ -172,6 +179,53 @@ public class RegionGrow{
 
 	}	    	
 
+		
+	/*Erode and dilate functions for removing extra stuff*/
+	public void erodeMask(){
+		for (int i=0; i<rowCount; i++){
+			for (int j=0; j<columnCount; j++){
+				if (segmentationMask[i][j] > 0.5){
+					if (i>0 && segmentationMask[i-1][j]==0 ||
+						j>0 && segmentationMask[i][j-1]==0 ||
+						i+1<rowCount && segmentationMask[i+1][j]==0 ||
+						j+1<columnCount && segmentationMask[i][j+1]==0)
+						{segmentationMask[i][j] = -1;}	//Erode the pixel if any of the neighborhood pixels is background
+				}
+			}
+		}
+		
+		for (int i=0; i<rowCount; i++){
+			for (int j=0; j<columnCount; j++){
+				if (segmentationMask[i][j]<-0.5){
+					segmentationMask[i][j] = 0;
+				}
+			}
+		}
+	}
+	
+	/*
+	public byte[] dilateMaskHonorColor(byte[] data,byte dilateVal,byte min, byte temp){
+		//Dilate algorithm
+		// Best dilate by one solution taken from http://ostermiller.org/dilate_and_erode.html
+		for (int i=0; i<height; i++){
+			for (int j=0; j<width; j++){
+				if (data[i*width+j] ==dilateVal){
+					if (i>0 && data[(i-1)*width+j]==min) {data[(i-1)*width+j] = temp;}
+					if (j>0 && data[(i)*width+j-1]==min) {data[(i)*width+j-1] = temp;}
+					if (i+1<height && data[(i+1)*width+j]==min) {data[(i+1)*width+j] = temp;}
+					if (j+1<width && data[(i)*width+j+1]==min) {data[(i)*width+j+1] = temp;}
+				}
+			}
+		}
+		for (int i=0; i<width*height; i++){
+			if (data[i] == temp){
+				data[i] = dilateVal;	//Set to proper value here...
+			}
+		}
+		return data;
+	}
+	*/
+	
 	/*Test*/
 	public static void main(String[] are){
 		double[][] image = {
