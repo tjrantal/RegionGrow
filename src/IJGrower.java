@@ -27,6 +27,7 @@ public class IJGrower implements PlugIn {
 	private int[] seedPoints;
 	private double diffLimit;
 	private boolean threeD;
+	private boolean growUpDown;
     public void run(String arg) {
         ImagePlus imp = WindowManager.getCurrentImage();
         /*Check that an image was open*/
@@ -87,6 +88,7 @@ public class IJGrower implements PlugIn {
 			/*Go through all of the slices*/
 			double[][] sliceData = new double[width][height];
 			double[][] sliceMask = new double[width][height];
+			RegionGrow r2d;
 			for (int d = 0; d < depth; ++d) {
 				/*Get the slice*/
 				for (int r = 0;r<height;++r){
@@ -96,15 +98,42 @@ public class IJGrower implements PlugIn {
 					}
 				}
 				/*Run the region growing*/
-				RegionGrow r2d = new RegionGrow(sliceData,sliceMask,diffLimit);
+				r2d = new RegionGrow(sliceData,sliceMask,diffLimit);
 				/*Copy the mask result to mask3D*/
-				sliceMask = r2d.segmentationMask;
 				for (int r = 0;r<height;++r){
 					for (int c = 0;c<width;++c){
-						segmentationMask[r][c][d]=sliceMask[r][c];
+						segmentationMask[r][c][d]=r2d.segmentationMask[r][c];
 					}
 				}
 			}
+			
+			/*Grow up down too*/
+			if(growUpDown){
+				IJ.log("Into UD");
+				/*Go through all of the slices*/
+				sliceData = new double[width][depth];
+				sliceMask = new double[width][depth];
+				for (int r = 0;r<height;++r){
+				
+					/*Get the slice*/
+					for (int d = 0; d < depth; ++d) {
+						for (int c = 0;c<width;++c){
+							sliceData[c][d] = image3D[r][c][d];
+							sliceMask[c][d] = segmentationMask[r][c][d];
+						}
+					}
+					/*Run the region growing*/
+					r2d = new RegionGrow(sliceData,sliceMask,diffLimit);
+					/*Copy the mask result to mask3D*/
+					for (int d = 0; d < depth; ++d) {
+						for (int c = 0;c<width;++c){
+							segmentationMask[r][c][d]=r2d.segmentationMask[c][d];
+						}
+					}
+				}
+				
+			}
+			
 		}
 		
 		
@@ -169,6 +198,7 @@ public class IJGrower implements PlugIn {
         gd.addMessage("Maximum difference");
         gd.addNumericField("maxDiff", 100, 0);
 		gd.addCheckbox("3D", false);
+		gd.addCheckbox("GrowUpDown", false);
 
         gd.showDialog();
 
@@ -182,7 +212,7 @@ public class IJGrower implements PlugIn {
 		}
         diffLimit	= gd.getNextNumber();
 		threeD		= gd.getNextBoolean();
-
+		growUpDown	= gd.getNextBoolean();
         return true;
     }
 	
