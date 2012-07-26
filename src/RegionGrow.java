@@ -5,6 +5,7 @@
 package ijGrower;
 
 import java.util.PriorityQueue;
+import java.util.Vector;
 
 public class RegionGrow{
 	
@@ -180,7 +181,7 @@ public class RegionGrow{
 	}	    	
 
 		
-	/*Erode and dilate functions for removing extra stuff*/
+	/*Erode, fill holes and dilate functions for removing extra stuff*/
 	public void erodeMask(){
 		for (int i=0; i<rowCount; i++){
 			for (int j=0; j<columnCount; j++){
@@ -201,6 +202,71 @@ public class RegionGrow{
 				}
 			}
 		}
+	}
+	
+	/*
+	Fill voids within mask...
+	First fill the surroundings
+	then fill the remainder, which should be the holes...
+	
+	*/
+	public void fillVoids(){
+		byte[][] background = new byte[rowCount][columnCount];
+		Vector<int[]> queue = new Vector<int[]>(rowCount*columnCount*4);
+		int[] coordinates = {0,0};
+		queue.add(coordinates);	/*Start filling from 0,0...*/
+		/*Fill background*/
+		int[][] neighbourhood = new int[4][2];
+		while (queue.size()>0){
+			coordinates=queue.lastElement();
+			queue.remove(queue.size()-1);
+			if (background[coordinates[0]][coordinates[1]] == 0 && segmentationMask[coordinates[0]][coordinates[1]] < 1){
+				background[coordinates[0]][coordinates[1]] = 1;
+				
+				//Check 4-connected neighbour
+				neighbourhood[0][0] = coordinates[0]-1;	/*Up one*/
+				neighbourhood[1][0] = coordinates[0]+1;	/*Down one*/
+				neighbourhood[2][0] = coordinates[0];
+				neighbourhood[3][0] = coordinates[0];
+				
+				neighbourhood[0][1] = coordinates[1];
+				neighbourhood[1][1] = coordinates[1];
+				neighbourhood[2][1] = coordinates[1]-1;	/*Left one*/
+				neighbourhood[3][1] = coordinates[1]+1;	/*Right one*/
+				//check whether the neighbour to the left should be added to the queue
+				Vector<Object> returned = checkNeighbours(neighbourhood,segmentationMask, background,queue);
+				segmentationMask = (double[][])returned.get(0);
+				background = (byte[][])returned.get(1);
+				queue = (Vector<int[]>)returned.get(2);
+			}			
+		}
+		/*Background filled*/
+		
+		for (int i=0; i<rowCount; i++){
+			for (int j=0; j<columnCount; j++){
+				if (segmentationMask[i][j]<0.5 && background[i][j] == 0){
+					segmentationMask[i][j] = 1;
+				}
+			}
+		}
+	}	
+
+	/*Update pixel queue*/
+	private Vector<Object> checkNeighbours(int[][] neighbourhood,double[][] segmentationMask, byte[][] background,Vector<int[]> queue){
+		int[] coordinates;
+        for (int r = 0;r<neighbourhood.length;++r){
+			coordinates = neighbourhood[r];
+            if (coordinates[0] >= 0 && coordinates[0] < rowCount && coordinates[1] >=0 && coordinates[1] < columnCount
+				&& segmentationMask[coordinates[0]][coordinates[1]] < 0.5 && background[coordinates[0]][coordinates[1]]<1){ //If the neigbour is within the image...
+					int[] queueCoordinates = {coordinates[0],coordinates[1]};
+					queue.add(queueCoordinates);
+            }
+        }
+		Vector<Object> returnValue = new Vector<Object>();
+		returnValue.add(segmentationMask);
+		returnValue.add(background);
+		returnValue.add(queue);
+		return returnValue;
 	}
 	
 	/*
