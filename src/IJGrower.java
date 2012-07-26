@@ -66,28 +66,7 @@ public class IJGrower implements PlugIn {
 			}
         }
 		
-		
-		/*Check image properties*/
-		/*
-		IJ.log("Start acquiring properties");
-		Properties properties = imp.getProperties();
-		String[] props = (String[]) properties.stringPropertyNames().toArray();
-		IJ.log("Got properties");
-		for (int i = 0;i<props.length;++i){
-			IJ.log(props[i]);
-		}
-       */
-
 		/*Construct the segmented mask*/
-		Calibration calibration = imp.getCalibration();
-		FileInfo fi = new FileInfo();
-		try { fi = imp.getOriginalFileInfo();}
-		catch (NullPointerException npe){IJ.error("Couldn't get fileInfo");} 
-		
-		IJ.log("File Info");
-		IJ.log(fi.info);
-		
-		
 		double [][][] mask3D = new double[width][height][depth];	/*Initialized to zero by Java as default*/
 		/*Create Seed volume, experimentally chosen....*/
 		for (int d = seedPoints[4]; d < seedPoints[5]; ++d) {
@@ -100,80 +79,23 @@ public class IJGrower implements PlugIn {
 		/*Grow stack*/
 		RegionGrow3D r3d = new RegionGrow3D(image3D, mask3D, diffLimit);
 		/*Visualize result*/
-        ImagePlus resultStack = createOutputStack(r3d.segmentationMask, calibration,fi,imp);
+		Calibration calibration = imp.getCalibration();
+        ImagePlus resultStack = createOutputStack(r3d.segmentationMask, calibration);
 		resultStack.show();
     }
 	
 	/*Visual mask result*/
-	private ImagePlus createOutputStack(double[][][] mask3d, Calibration calibration,FileInfo fi,ImagePlus imp) {
+	private ImagePlus createOutputStack(double[][][] mask3d, Calibration calibration) {
 		int width	=mask3d[0].length;
 		int height	=mask3d.length;
 		int depth	=mask3d[0][0].length;
         ImageStack resultStack = new ImageStack(width, height);
         int pixels = width*height;
-		
-		/*Set stack image dimensions according to the original dimensions...*/
-
-		IJ.log("FI pixelW "+fi.pixelWidth);
-		IJ.log("FI pixelH "+fi.pixelHeight);
-		IJ.log("FI pixelD "+fi.pixelDepth);
-		IJ.log("FI W "+fi.width);
-		IJ.log("FI H "+fi.height);
-		IJ.log("Cal pixelW "+calibration.pixelWidth);
-		IJ.log("Cal pixelH "+calibration.pixelHeight);
-		IJ.log("Cal pixelD "+calibration.pixelDepth);
-		
-
-		
-		
-
-        /*Create file info string for properties*/
-		String[] propertyNames = {"Pixel Width","Pixel Height","Voxel Depth","Pixel Spacing"};
-		String[] propertyValues = {Double.toString(fi.pixelWidth),Double.toString(fi.pixelHeight),Double.toString(fi.pixelDepth),Double.toString(fi.pixelWidth)};
-		double[] doublePropertyValues = {fi.pixelWidth,fi.pixelHeight,fi.pixelDepth,fi.pixelWidth};
-		String properties = new String();
-		for (int i = 0;i<propertyNames.length;++i){
-			properties += propertyNames[i]+": "+propertyValues[i]+"\n";
-		}
-		
-		
-		
+	
 		
         for (int d = 0; d < depth; ++d) {
-			/*Create image*/
-			ImagePlus impS = NewImage.createByteImage("Stack "+d,width,height,1,NewImage.FILL_BLACK);
-			
-			/*Set Calibration*/
-			Calibration stackCal = impS.getCalibration();
-			stackCal.pixelWidth = fi.pixelWidth;
-			stackCal.pixelHeight  = fi.pixelHeight;
-			stackCal.pixelDepth  = fi.pixelDepth;
-			stackCal.setUnit("mm");
-			stackCal.disableDensityCalibration();
-			impS.setCalibration(stackCal);
-			
-			/*Set FileInfo*/
-			FileInfo fiS = new FileInfo();
-			fiS.pixelWidth = fi.pixelWidth;
-			fiS.pixelHeight = fi.pixelHeight;
-			fiS.pixelDepth = fi.pixelDepth;
-			fiS.width = fi.width;
-			fiS.height = fi.height;
-			fiS.valueUnit = "mm";
-			fiS.fileFormat = fiS.RAW;
-			fiS.compression = fiS.COMPRESSION_NONE;
-			fiS.fileType = fiS.GRAY8;	//
-			fiS.info = properties;	
-			impS.setFileInfo(fiS);
-			
-			/*Set porperties*/
-			impS.setProperty("Info", properties);
-			for (int i = 0;i<propertyNames.length;++i){
-				impS.setProperty(propertyNames[i],doublePropertyValues[i]);
-			}
-            
 			/*Set Pixels*/
-			byte[] slicePixels = (byte[]) impS.getProcessor().getPixels();
+			byte[] slicePixels = new byte[width*height];
 			for (int r = 0;r<height;++r){
 				for (int c = 0;c<width;++c){
 					if (mask3d[r][c][d] < 0.5){
@@ -183,50 +105,25 @@ public class IJGrower implements PlugIn {
 					}
 				}
 			}
-			//impS.setDisplayRange( 0, 127);
-			IJ.log("Slice "+d+" isScaled "+impS.getCalibration().scaled());
-            resultStack.addSlice(impS.getProcessor());
-			resultStack.update(impS.getProcessor());
+			//impS
+            resultStack.addSlice(null,slicePixels);
+
         }
 		ImagePlus returnStack = new ImagePlus("Region", resultStack);
-		
 		/*Set Calibration*/
-		Calibration stackCal = returnStack.getCalibration();
-		stackCal.pixelWidth = fi.pixelWidth;
-		stackCal.pixelHeight  = fi.pixelHeight;
-		stackCal.pixelDepth  = fi.pixelDepth;
-		stackCal.setUnit("mm");
-		stackCal.disableDensityCalibration();
-		returnStack.setCalibration(stackCal);
-		
-		/*Set FileInfo*/
-		FileInfo fiS = new FileInfo();
-		fiS.pixelWidth = fi.pixelWidth;
-		fiS.pixelHeight = fi.pixelHeight;
-		fiS.pixelDepth = fi.pixelDepth;
-		fiS.width = fi.width;
-		fiS.height = fi.height;
-		fiS.valueUnit = "mm";
-		fiS.fileFormat = fiS.RAW;
-		fiS.compression = fiS.COMPRESSION_NONE;
-		fiS.fileType = fiS.GRAY8;	//
-		fiS.info = properties;	
-		returnStack.setFileInfo(fiS);
-		
-		/*Set porperties*/
-		returnStack.setProperty("Info", properties);
-		for (int i = 0;i<propertyNames.length;++i){
-			returnStack.setProperty(propertyNames[i],doublePropertyValues[i]);
-		}
-		
+		returnStack.getCalibration().pixelWidth = calibration.pixelWidth;
+		returnStack.getCalibration().pixelHeight  = calibration.pixelHeight;
+		returnStack.getCalibration().pixelDepth  = calibration.pixelDepth;
+		returnStack.getCalibration().setUnit("mm");
+		//returnStack.setDisplayRange( 0, 1);
         return returnStack;
     }
 
-    /**
-     * Get seed volume and maximum difference from user.
-     *
-     * @return <code>true</code> when user clicked OK (confirmed changes, <code>false</code>
-     *         otherwise.
+    /*
+      Get seed volume and maximum difference from user.
+     
+      @return <code>true</code> when user clicked OK (confirmed changes, <code>false</code>
+              otherwise.
      */
 	 
     private boolean getParameters() {	
