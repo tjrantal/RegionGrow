@@ -186,7 +186,7 @@ public class RegionGrow3D{
 	}
 	
 	public static int[][] findStatic(double[][][] matrix){
-		int[][] temp = new int[matrix.length*matrix[0].length][3];
+		int[][] temp = new int[matrix.length*matrix[0].length*matrix[0][0].length][3];
 		int found = 0;
 		for (int i = 0; i< matrix.length;++i){
 			for (int j = 0; j< matrix[i].length;++j){

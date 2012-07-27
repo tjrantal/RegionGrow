@@ -61,9 +61,10 @@ public class RegionGrow{
 	
 	public boolean growRegion(){
 		/*Init variables and add seed points to the queue*/
-		pixelQueue = new PriorityQueue<NextPixel>();
 		rowCount = dataSlice.length;
 		columnCount = dataSlice[0].length;
+		pixelQueue = new PriorityQueue<NextPixel>(40000);	/*Try to reserve memory to enable faster execution...*/
+		
 		visited = new byte[rowCount][columnCount];
 
 		/*Init pixelQueue*/

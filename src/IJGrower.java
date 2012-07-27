@@ -89,30 +89,36 @@ public class IJGrower implements PlugIn {
 			double[][] sliceData = new double[width][height];
 			double[][] sliceMask = new double[width][height];
 			double[] meanAndArea;
+			meanAndArea = RegionGrow3D.getCurrentMeanAndArea(mask3D, image3D);
 			RegionGrow r2d;
+			boolean maskHasPixels;
 			for (int d = 0; d < depth; ++d) {
+				IJ.log("First of three region grows slice "+d);
 				/*Get the slice*/
+				maskHasPixels =false;
 				for (int r = 0;r<height;++r){
 					for (int c = 0;c<width;++c){
 						sliceData[r][c] = image3D[r][c][d];
 						sliceMask[r][c] = mask3D[r][c][d];
+						if (){
+							maskHasPixels = true;
+						}
 					}
 				}
 				/*Run the region growing*/
-				meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
-				r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-				if (r2d.maskHasPixels()){	/*Do the remaining steps only if a pixel existed within the slice...*/
+				if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
+					r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
 					r2d.growRegion();
 					r2d.fillVoids(); //Fill void
-					//System.out.println("Eroding");
 					r2d.erodeMask();	/*Try to remove spurs...*/
-					//System.out.println("Eroded");
 					/*Copy the mask result to mask3D*/
 					for (int r = 0;r<height;++r){
 						for (int c = 0;c<width;++c){
 							segmentationMask[r][c][d]=r2d.segmentationMask[r][c];
 						}
 					}
+					/*update mean and area*/
+					meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
 				}
 			}
 			
@@ -123,7 +129,7 @@ public class IJGrower implements PlugIn {
 				sliceData = new double[width][depth];
 				sliceMask = new double[width][depth];
 				for (int r = 0;r<height;++r){
-				
+					IJ.log("Second region grow slice "+r);
 					/*Get the slice*/
 					for (int d = 0; d < depth; ++d) {
 						for (int c = 0;c<width;++c){
@@ -148,19 +154,24 @@ public class IJGrower implements PlugIn {
 				}
 				
 				/*Grow once more in sagittal direction*/
-				/*
+				sliceData = new double[width][height];
+				sliceMask = new double[width][height];
+				
 				for (int d = 0; d < depth; ++d) {
+					IJ.log("Last region grow slice "+d);
 					//Get the slice
 					for (int r = 0;r<height;++r){
 						for (int c = 0;c<width;++c){
 							sliceData[r][c] = image3D[r][c][d];
-							sliceMask[r][c] = mask3D[r][c][d];
+							sliceMask[r][c] = segmentationMask[r][c][d];
 						}
 					}
 					//Run the region growing
 					meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
 					r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
+					
 					if (r2d.maskHasPixels()){
+						r2d.erodeMask();	//Remove extra stuff from sagittal growing...
 						r2d.erodeMask();	//Remove extra stuff from sagittal growing...
 						r2d.erodeMask();	//Remove extra stuff from sagittal growing...
 					}
@@ -168,9 +179,6 @@ public class IJGrower implements PlugIn {
 						r2d.growRegion();
 						r2d.fillVoids(); //Fill void
 					}
-					//System.out.println("Eroding");
-					
-					//System.out.println("Eroded");
 					//Copy the mask result to mask3D
 					for (int r = 0;r<height;++r){
 						for (int c = 0;c<width;++c){
@@ -178,7 +186,7 @@ public class IJGrower implements PlugIn {
 						}
 					}
 				}
-				*/
+				
 			}
 			
 		}
