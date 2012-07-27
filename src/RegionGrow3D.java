@@ -13,7 +13,7 @@ public class RegionGrow3D{
 	
 	/*Parameters*/
 	private double[][][] dataSlice;
-	public double[][][] segmentationMask;
+	public byte[][][] segmentationMask;
 	private double maxDiff;
 	
 	/*Global variables, saves effort in declaring functions...*/
@@ -27,7 +27,7 @@ public class RegionGrow3D{
 		@param dataSlice		A 3D image stack, e.g. DICOM image stack
 		@param segmentationMask	A 3D segmentation mask containing the seed points as 1 and others as 0	
 	*/
-	public RegionGrow3D(double[][][] dataSlice, double[][][] segmentationMask){
+	public RegionGrow3D(double[][][] dataSlice, byte[][][] segmentationMask){
 		this.dataSlice = dataSlice;
 		this.segmentationMask = segmentationMask;
 		this.maxDiff = 250.0;
@@ -40,7 +40,7 @@ public class RegionGrow3D{
 		@param segmentationMask	A 3D segmentation mask containing the seed points as 1 and others as 0
 		@param maxDiff			The maximum difference from mean of points within segmentationMask to be grown to. The mask will grow to all pixels connected to the mask hat difer from the mean less than this value.
 	*/
-	public RegionGrow3D(double[][][] dataSlice, double[][][] segmentationMask, double maxDiff){
+	public RegionGrow3D(double[][][] dataSlice, byte[][][] segmentationMask, double maxDiff){
 		this.dataSlice = dataSlice;
 		this.segmentationMask = segmentationMask;
 		this.maxDiff = maxDiff;
@@ -82,7 +82,7 @@ public class RegionGrow3D{
 				coordinates = nextPixel.coordinates;
 				//System.out.println("r "+coordinates[0]+" c "+coordinates[1]);
 				visited[coordinates[0]][coordinates[1]][coordinates[2]] = (byte) 1;
-				if (segmentationMask[coordinates[0]][coordinates[1]][coordinates[2]] < 1){
+				if (segmentationMask[coordinates[0]][coordinates[1]][coordinates[2]] == 0){
 					segmentationMask[coordinates[0]][coordinates[1]][coordinates[2]] = 1;
 					++maskArea;	//Add the new pixel to the area
 					currentMean += ((dataSlice[coordinates[0]][coordinates[1]][coordinates[2]]-currentMean)/((double) maskArea)); //Adding the weighted difference updates the mean...
@@ -139,13 +139,13 @@ public class RegionGrow3D{
         }
 	}
 	
-	private int[][] find(double[][][] matrix){
+	private int[][] find(byte[][][] matrix){
 		int[][] temp = new int[matrix.length*matrix[0].length][3];
 		int found = 0;
 		for (int i = 0; i< matrix.length;++i){
 			for (int j = 0; j< matrix[i].length;++j){
 				for (int k = 0; k< matrix[i][j].length;++k){
-					if (matrix[i][j][k] > 0.5){
+					if (matrix[i][j][k] == 1){
 						temp[found][0] = i;
 						temp[found][1] = j;
 						temp[found][2] = k;
@@ -174,7 +174,7 @@ public class RegionGrow3D{
 	}
 	
 	
-	public static double[] getCurrentMeanAndArea(double[][][] segmentationMask, double[][][] dataSlice){
+	public static double[] getCurrentMeanAndArea(byte[][][] segmentationMask, double[][][] dataSlice){
 		int[][] indices = findStatic(segmentationMask);
 		double sum = 0;
 		for (int i = 0; i<indices.length; ++i){
@@ -185,13 +185,13 @@ public class RegionGrow3D{
 		return returnValue;
 	}
 	
-	public static int[][] findStatic(double[][][] matrix){
+	public static int[][] findStatic(byte[][][] matrix){
 		int[][] temp = new int[matrix.length*matrix[0].length*matrix[0][0].length][3];
 		int found = 0;
 		for (int i = 0; i< matrix.length;++i){
 			for (int j = 0; j< matrix[i].length;++j){
 				for (int k = 0; k< matrix[i][j].length;++k){
-					if (matrix[i][j][k] > 0.5){
+					if (matrix[i][j][k] > 0){
 						temp[found][0] = i;
 						temp[found][1] = j;
 						temp[found][2] = k;
@@ -286,7 +286,7 @@ public class RegionGrow3D{
 						{0,0,0,0,0,0,0,0,0,0},
 						{0,0,0,0,0,0,0,0,0,0}}
 						};
-		double[][][] mask = {
+		byte[][][] mask = {
 						{{0,0,0,0,0,0,0,0,0,0},
 						{0,0,0,0,0,0,0,0,0,0},
 						{0,0,0,0,0,0,0,0,0,0},

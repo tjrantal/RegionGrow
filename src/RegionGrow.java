@@ -12,7 +12,7 @@ public class RegionGrow{
 	
 	/*Parameters*/
 	private double[][] dataSlice;
-	public double[][] segmentationMask;
+	public byte[][] segmentationMask;
 	private double maxDiff;
 	public boolean success;
 	
@@ -24,7 +24,7 @@ public class RegionGrow{
 	private long maskArea;
 	private PriorityQueue<NextPixel> pixelQueue;
 	/*Constructor for default maxDiff*/
-	public RegionGrow(double[][] dataSlice, double[][] segmentationMask){
+	public RegionGrow(double[][] dataSlice, byte[][] segmentationMask){
 		this.dataSlice = dataSlice;
 		this.segmentationMask = segmentationMask;
 		this.maxDiff = 250.0;
@@ -32,7 +32,7 @@ public class RegionGrow{
 	}
 	
 	/*Constructor with maxDiff*/
-	public RegionGrow(double[][] dataSlice, double[][] segmentationMask, double maxDiff){
+	public RegionGrow(double[][] dataSlice, byte[][] segmentationMask, double maxDiff){
 		this.dataSlice = dataSlice;
 		this.segmentationMask = segmentationMask;
 		this.maxDiff = maxDiff;
@@ -40,7 +40,7 @@ public class RegionGrow{
 	}
 	
 	/*Constructor with maxDiff, mean and area*/
-	public RegionGrow(double[][] dataSlice, double[][] segmentationMask, double maxDiff, double currentMean, long maskArea){
+	public RegionGrow(double[][] dataSlice, byte[][] segmentationMask, double maxDiff, double currentMean, long maskArea){
 		this.dataSlice = dataSlice;
 		this.segmentationMask = segmentationMask;
 		this.maxDiff = maxDiff;
@@ -88,7 +88,7 @@ public class RegionGrow{
 				coordinates = nextPixel.coordinates;
 				//System.out.println("r "+coordinates[0]+" c "+coordinates[1]);
 				visited[coordinates[0]][coordinates[1]] = (byte) 1;
-				if (segmentationMask[coordinates[0]][coordinates[1]] < 1){
+				if (segmentationMask[coordinates[0]][coordinates[1]] ==0){
 					segmentationMask[coordinates[0]][coordinates[1]] = 1;
 					++maskArea;	//Add the new pixel to the area
 					currentMean += ((dataSlice[coordinates[0]][coordinates[1]]-currentMean)/((double) maskArea)); //Adding the weighted difference updates the mean...
@@ -133,7 +133,7 @@ public class RegionGrow{
         }
 	}
 	
-	private int[][] find(double[][] matrix){
+	private int[][] find(byte[][] matrix){
 		int[][] temp = new int[matrix.length*matrix[0].length][2];
 		int found = 0;
 		for (int i = 0; i< matrix.length;++i){
@@ -244,7 +244,7 @@ public class RegionGrow{
 				neighbourhood[3][1] = coordinates[1]+1;	/*Right one*/
 				//check whether the neighbour to the left should be added to the queue
 				Vector<Object> returned = checkNeighbours(neighbourhood,segmentationMask, background,queue);
-				segmentationMask = (double[][])returned.get(0);
+				segmentationMask = (byte[][])returned.get(0);
 				background = (byte[][])returned.get(1);
 				queue = (Vector<int[]>)returned.get(2);
 			}			
@@ -261,12 +261,12 @@ public class RegionGrow{
 	}	
 
 	/*Update pixel queue*/
-	private Vector<Object> checkNeighbours(int[][] neighbourhood,double[][] segmentationMask, byte[][] background,Vector<int[]> queue){
+	private Vector<Object> checkNeighbours(int[][] neighbourhood,byte[][] segmentationMask, byte[][] background,Vector<int[]> queue){
 		int[] coordinates;
         for (int r = 0;r<neighbourhood.length;++r){
 			coordinates = neighbourhood[r];
             if (coordinates[0] >= 0 && coordinates[0] < rowCount && coordinates[1] >=0 && coordinates[1] < columnCount
-				&& segmentationMask[coordinates[0]][coordinates[1]] < 0.5 && background[coordinates[0]][coordinates[1]]<1){ //If the neigbour is within the image...
+				&& segmentationMask[coordinates[0]][coordinates[1]] == 0 && background[coordinates[0]][coordinates[1]]==0){ //If the neigbour is within the image...
 					int[] queueCoordinates = {coordinates[0],coordinates[1]};
 					queue.add(queueCoordinates);
             }
@@ -315,7 +315,7 @@ public class RegionGrow{
 						{0,0,0,0,0,0,0,0,0,0},
 						{0,0,0,0,0,0,0,0,0,0}
 						};
-		double[][] mask = {
+		byte[][] mask = {
 						{0,0,0,0,0,0,0,0,0,0},
 						{0,0,0,0,0,0,0,0,0,0},
 						{0,0,0,0,0,1,0,0,0,0},

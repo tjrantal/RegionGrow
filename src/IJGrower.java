@@ -69,13 +69,13 @@ public class IJGrower implements PlugIn {
         }
 		
 		/*Construct the segmented mask*/
-		double [][][] mask3D = new double[width][height][depth];	/*Initialized to zero by Java as default*/
-		double [][][] segmentationMask;
+		byte[][][] mask3D = new byte[width][height][depth];	/*Initialized to zero by Java as default*/
+		byte[][][] segmentationMask;
 		/*Create Seed volume, experimentally chosen....*/
 		for (int d = seedPoints[4]; d < seedPoints[5]; ++d) {
 			for (int r = seedPoints[2];r<seedPoints[3];++r){
 				for (int c = seedPoints[0];c<seedPoints[1];++c){
-					mask3D[r][c][d] = (double) 1;
+					mask3D[r][c][d] = (byte) 1;
 				}
 			}
         }
@@ -84,10 +84,10 @@ public class IJGrower implements PlugIn {
 			RegionGrow3D r3d = new RegionGrow3D(image3D, mask3D, diffLimit);
 			segmentationMask = r3d.segmentationMask;
 		}else{			/*2D region grow*/
-			segmentationMask = new double[width][height][depth];	/*Create the segmentation mask*/
+			segmentationMask = new byte[width][height][depth];	/*Create the segmentation mask*/
 			/*Go through all of the slices*/
 			double[][] sliceData = new double[width][height];
-			double[][] sliceMask = new double[width][height];
+			byte[][] sliceMask = new byte[width][height];
 			double[] meanAndArea;
 			meanAndArea = RegionGrow3D.getCurrentMeanAndArea(mask3D, image3D);
 			RegionGrow r2d;
@@ -100,7 +100,7 @@ public class IJGrower implements PlugIn {
 					for (int c = 0;c<width;++c){
 						sliceData[r][c] = image3D[r][c][d];
 						sliceMask[r][c] = mask3D[r][c][d];
-						if (){
+						if (sliceMask[r][c] ==1){
 							maskHasPixels = true;
 						}
 					}
@@ -127,20 +127,23 @@ public class IJGrower implements PlugIn {
 				//IJ.log("Into UD");
 				/*Go through all of the slices*/
 				sliceData = new double[width][depth];
-				sliceMask = new double[width][depth];
+				sliceMask = new byte[width][depth];
 				for (int r = 0;r<height;++r){
 					IJ.log("Second region grow slice "+r);
 					/*Get the slice*/
+					maskHasPixels = false;
 					for (int d = 0; d < depth; ++d) {
 						for (int c = 0;c<width;++c){
 							sliceData[c][d] = image3D[r][c][d];
 							sliceMask[c][d] = segmentationMask[r][c][d];
+							if (sliceMask[c][d] ==1){
+								maskHasPixels = true;
+							}
 						}
 					}
 					/*Run the region growing*/
-					meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
-					r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-					if (r2d.maskHasPixels()){
+					if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
+						r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
 						r2d.growRegion();
 						r2d.fillVoids(); //Fill void
 						r2d.erodeMask();	/*Try to remove spurs...*/
@@ -150,41 +153,47 @@ public class IJGrower implements PlugIn {
 								segmentationMask[r][c][d]=r2d.segmentationMask[c][d];
 							}
 						}
+						meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
 					}
 				}
 				
 				/*Grow once more in sagittal direction*/
 				sliceData = new double[width][height];
-				sliceMask = new double[width][height];
+				sliceMask = new byte[width][height];
 				
 				for (int d = 0; d < depth; ++d) {
 					IJ.log("Last region grow slice "+d);
 					//Get the slice
+					maskHasPixels = false;
 					for (int r = 0;r<height;++r){
 						for (int c = 0;c<width;++c){
 							sliceData[r][c] = image3D[r][c][d];
 							sliceMask[r][c] = segmentationMask[r][c][d];
+							if (sliceMask[r][c] ==1){
+								maskHasPixels = true;
+							}
 						}
 					}
 					//Run the region growing
-					meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
-					r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-					
-					if (r2d.maskHasPixels()){
+					if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
+						r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
 						r2d.erodeMask();	//Remove extra stuff from sagittal growing...
 						r2d.erodeMask();	//Remove extra stuff from sagittal growing...
 						r2d.erodeMask();	//Remove extra stuff from sagittal growing...
-					}
-					if (r2d.maskHasPixels()){
-						r2d.growRegion();
-						r2d.fillVoids(); //Fill void
-					}
-					//Copy the mask result to mask3D
-					for (int r = 0;r<height;++r){
-						for (int c = 0;c<width;++c){
-							segmentationMask[r][c][d]=r2d.segmentationMask[r][c];
+						if (r2d.maskHasPixels()){
+							r2d.growRegion();
+							r2d.fillVoids(); //Fill void
 						}
+						//Copy the mask result to mask3D
+						for (int r = 0;r<height;++r){
+							for (int c = 0;c<width;++c){
+								segmentationMask[r][c][d]=r2d.segmentationMask[r][c];
+							}
+						}
+						meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
 					}
+
+
 				}
 				
 			}
@@ -199,7 +208,7 @@ public class IJGrower implements PlugIn {
     }
 	
 	/*Visual mask result*/
-	private ImagePlus createOutputStack(double[][][] mask3d, Calibration calibration) {
+	private ImagePlus createOutputStack(byte[][][] mask3d, Calibration calibration) {
 		int width	=mask3d[0].length;
 		int height	=mask3d.length;
 		int depth	=mask3d[0][0].length;
@@ -212,7 +221,7 @@ public class IJGrower implements PlugIn {
 			byte[] slicePixels = new byte[width*height];
 			for (int r = 0;r<height;++r){
 				for (int c = 0;c<width;++c){
-					if (mask3d[r][c][d] < 0.5){
+					if (mask3d[r][c][d] == 0){
 						slicePixels[c+r*width] = 0;
 					}else{
 						slicePixels[c+r*width] = (byte) 0xff;
