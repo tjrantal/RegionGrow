@@ -51,7 +51,7 @@ public class RegionGrow{
 	public boolean maskHasPixels(){
 		for (int i=0; i<segmentationMask.length; i++){
 			for (int j=0; j<segmentationMask[i].length; j++){
-				if (segmentationMask[i][j] > 0.5){
+				if (segmentationMask[i][j] > 0){
 					return true;
 				}
 			}
@@ -63,7 +63,7 @@ public class RegionGrow{
 		/*Init variables and add seed points to the queue*/
 		rowCount = dataSlice.length;
 		columnCount = dataSlice[0].length;
-		pixelQueue = new PriorityQueue<NextPixel>(40000);	/*Try to reserve memory to enable faster execution...*/
+		pixelQueue = new PriorityQueue<NextPixel>();	/*Try to reserve memory to enable faster execution...*/
 		
 		visited = new byte[rowCount][columnCount];
 
@@ -138,7 +138,7 @@ public class RegionGrow{
 		int found = 0;
 		for (int i = 0; i< matrix.length;++i){
 			for (int j = 0; j< matrix[i].length;++j){
-				if (matrix[i][j] > 0.5){
+				if (matrix[i][j] > 0){
 					temp[found][0] = i;
 					temp[found][1] = j;
 					++found;					
@@ -192,9 +192,11 @@ public class RegionGrow{
 		
 	/*Erode, fill holes and dilate functions for removing extra stuff*/
 	public void erodeMask(){
+		int rowCount =  segmentationMask.length;
+		int columnCount = segmentationMask[0].length;
 		for (int i=0; i<rowCount; i++){
 			for (int j=0; j<columnCount; j++){
-				if (segmentationMask[i][j] > 0.5){
+				if (segmentationMask[i][j] == 1){
 					if (i>0 && segmentationMask[i-1][j]==0 ||
 						j>0 && segmentationMask[i][j-1]==0 ||
 						i+1<rowCount && segmentationMask[i+1][j]==0 ||
@@ -206,7 +208,7 @@ public class RegionGrow{
 		
 		for (int i=0; i<rowCount; i++){
 			for (int j=0; j<columnCount; j++){
-				if (segmentationMask[i][j]<-0.5){
+				if (segmentationMask[i][j]==-1){
 					segmentationMask[i][j] = 0;
 				}
 			}
@@ -220,6 +222,8 @@ public class RegionGrow{
 	
 	*/
 	public void fillVoids(){
+		int rowCount =  segmentationMask.length;
+		int columnCount = segmentationMask[0].length;
 		byte[][] background = new byte[rowCount][columnCount];
 		Vector<int[]> queue = new Vector<int[]>(rowCount*columnCount*4);
 		int[] coordinates = {0,0};

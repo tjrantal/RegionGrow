@@ -111,7 +111,9 @@ public class IJGrower implements PlugIn {
 					r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
 					r2d.growRegion();
 					r2d.fillVoids(); //Fill void
-					r2d.erodeMask();	/*Try to remove spurs...*/
+					for (int i = 0; i< 5; ++i){
+						r2d.erodeMask();	/*Try to remove spurs...*/
+					}
 					/*Copy the mask result to mask3D*/
 					for (int r = 0;r<height;++r){
 						for (int c = 0;c<width;++c){
@@ -144,6 +146,8 @@ public class IJGrower implements PlugIn {
 					}
 					/*Run the region growing*/
 					if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
+						/*Try threading here*/
+					
 						r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
 						r2d.growRegion();
 						r2d.fillVoids(); //Fill void
@@ -180,13 +184,15 @@ public class IJGrower implements PlugIn {
 						//Run the region growing
 						if (maskHasPixels){ //Do the remaining steps only if a pixel existed within the slice...
 							r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-							r2d.erodeMask();	//Remove extra stuff from sagittal growing...
-							r2d.erodeMask();	//Remove extra stuff from sagittal growing...
-							r2d.erodeMask();	//Remove extra stuff from sagittal growing...
+							for (int i = 0;i<10;++i){
+								r2d.erodeMask();	//Remove extra stuff from sagittal growing...
+							}
+							
 							if (r2d.maskHasPixels()){
 								r2d.growRegion();
 								r2d.fillVoids(); //Fill void
 							}
+							
 							//Copy the mask result to mask3D
 							for (int r = 0;r<height;++r){
 								for (int c = 0;c<width;++c){
@@ -210,6 +216,22 @@ public class IJGrower implements PlugIn {
         ImagePlus resultStack = createOutputStack(segmentationMask, calibration);
 		resultStack.show();
     }
+	
+	
+	/*Try multithreading*/
+	public class MultiThreader implements Runnable{
+		
+		public MultiThreader(){
+			
+		}
+		
+		
+		public void run(){
+		
+		}
+	}
+	
+	
 	
 	/*Visual mask result*/
 	private ImagePlus createOutputStack(byte[][][] mask3d, Calibration calibration) {
