@@ -129,11 +129,12 @@ public class IJGrower implements PlugIn {
 			if(growUpDown){
 				//IJ.log("Into UD");
 				/*Go through all of the slices*/
-				sliceData = new double[width][depth];
-				sliceMask = new byte[width][depth];
+				
 				List threads = new ArrayList();
 				for (int r = 0;r<height;++r){
 					IJ.log("Second region grow slice "+r);
+					sliceData = new double[width][depth];
+					sliceMask = new byte[width][depth];
 					/*Get the slice*/
 					maskHasPixels = false;
 					for (int d = 0; d < depth; ++d) {
@@ -149,10 +150,10 @@ public class IJGrower implements PlugIn {
 					if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
 						/*Try threading here*/
 						RegionGrow rg = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-						MultiThreader mt = new MultiThreader(rg, segmentationMask,r,depth,width);
-						Thread newThread = new Thread(mt);
+						Thread newThread = new MultiThreader(rg,r);
 						newThread.start();
 						threads.add(newThread);
+						IJ.log("Fired up thread "+threads.size()+" r "+r);
 					}
 				}
 				
@@ -161,7 +162,16 @@ public class IJGrower implements PlugIn {
 					try{
 						((Thread) threads.get(t)).join();
 					}catch(Exception er){}
+					/*Copy the mask result to mask3D*/
+					int r = ((MultiThreader) threads.get(t)).r;
+					for (int d = 0; d < depth; ++d) {
+						for (int c = 0;c<width;++c){
+							segmentationMask[r][c][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][d];
+						}
+					}
+					
 					IJ.log("Joined thread "+t);
+					
 				}
 				meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
 				/*Grow once more in sagittal direction*/
@@ -220,33 +230,18 @@ public class IJGrower implements PlugIn {
 	
 	
 	/*Try multithreading*/
-	public class MultiThreader implements Runnable{
-		byte[][][] segmentationMask;
-		RegionGrow r2d;
-		int r;
-		int depth;
-		int width;
-		public MultiThreader(RegionGrow r2d, byte[][][] segmentationMask, int r,int depth,int width){
+	public class MultiThreader extends Thread{
+		public RegionGrow r2d;
+		public int r;
+		public MultiThreader(RegionGrow r2d, int r){
 			this.r2d = r2d;
-			this.segmentationMask = segmentationMask;
 			this.r = r;
-			this.depth = depth;
-			this.width = width;
 		}
-		
 		
 		public void run(){
 			r2d.growRegion();
 			r2d.fillVoids(); //Fill void
 			r2d.erodeMask();	/*Try to remove spurs...*/
-									
-			/*Copy the mask result to mask3D*/
-			for (int d = 0; d < depth; ++d) {
-				for (int c = 0;c<width;++c){
-					segmentationMask[r][c][d]=r2d.segmentationMask[c][d];
-				}
-			}
-		
 		}
 	}
 	
