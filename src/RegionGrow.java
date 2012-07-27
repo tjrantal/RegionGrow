@@ -29,7 +29,6 @@ public class RegionGrow{
 		this.segmentationMask = segmentationMask;
 		this.maxDiff = 250.0;
 		currentMean = getCurrentMean();
-		success = growRegion();
 	}
 	
 	/*Constructor with maxDiff*/
@@ -38,7 +37,6 @@ public class RegionGrow{
 		this.segmentationMask = segmentationMask;
 		this.maxDiff = maxDiff;
 		currentMean = getCurrentMean();
-		success = growRegion();
 	}
 	
 	/*Constructor with maxDiff, mean and area*/
@@ -48,10 +46,20 @@ public class RegionGrow{
 		this.maxDiff = maxDiff;
 		this.currentMean = currentMean;
 		this.maskArea = maskArea;
-		success  = growRegion();
 	}
 	
-	private boolean growRegion(){
+	public boolean maskHasPixels(){
+		for (int i=0; i<segmentationMask.length; i++){
+			for (int j=0; j<segmentationMask[i].length; j++){
+				if (segmentationMask[i][j] > 0.5){
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
+	public boolean growRegion(){
 		/*Init variables and add seed points to the queue*/
 		pixelQueue = new PriorityQueue<NextPixel>();
 		rowCount = dataSlice.length;

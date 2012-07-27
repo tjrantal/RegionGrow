@@ -101,14 +101,17 @@ public class IJGrower implements PlugIn {
 				/*Run the region growing*/
 				meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
 				r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-				r2d.fillVoids(); //Fill void
-				//System.out.println("Eroding");
-				r2d.erodeMask();	/*Try to remove spurs...*/
-				//System.out.println("Eroded");
-				/*Copy the mask result to mask3D*/
-				for (int r = 0;r<height;++r){
-					for (int c = 0;c<width;++c){
-						segmentationMask[r][c][d]=r2d.segmentationMask[r][c];
+				if (r2d.maskHasPixels()){	/*Do the remaining steps only if a pixel existed within the slice...*/
+					r2d.growRegion();
+					r2d.fillVoids(); //Fill void
+					//System.out.println("Eroding");
+					r2d.erodeMask();	/*Try to remove spurs...*/
+					//System.out.println("Eroded");
+					/*Copy the mask result to mask3D*/
+					for (int r = 0;r<height;++r){
+						for (int c = 0;c<width;++c){
+							segmentationMask[r][c][d]=r2d.segmentationMask[r][c];
+						}
 					}
 				}
 			}
@@ -131,16 +134,51 @@ public class IJGrower implements PlugIn {
 					/*Run the region growing*/
 					meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
 					r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-					r2d.fillVoids(); //Fill void
-					r2d.erodeMask();	/*Try to remove spurs...*/
-					/*Copy the mask result to mask3D*/
-					for (int d = 0; d < depth; ++d) {
-						for (int c = 0;c<width;++c){
-							segmentationMask[r][c][d]=r2d.segmentationMask[c][d];
+					if (r2d.maskHasPixels()){
+						r2d.growRegion();
+						r2d.fillVoids(); //Fill void
+						r2d.erodeMask();	/*Try to remove spurs...*/
+						/*Copy the mask result to mask3D*/
+						for (int d = 0; d < depth; ++d) {
+							for (int c = 0;c<width;++c){
+								segmentationMask[r][c][d]=r2d.segmentationMask[c][d];
+							}
 						}
 					}
 				}
 				
+				/*Grow once more in sagittal direction*/
+				/*
+				for (int d = 0; d < depth; ++d) {
+					//Get the slice
+					for (int r = 0;r<height;++r){
+						for (int c = 0;c<width;++c){
+							sliceData[r][c] = image3D[r][c][d];
+							sliceMask[r][c] = mask3D[r][c][d];
+						}
+					}
+					//Run the region growing
+					meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
+					r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
+					if (r2d.maskHasPixels()){
+						r2d.erodeMask();	//Remove extra stuff from sagittal growing...
+						r2d.erodeMask();	//Remove extra stuff from sagittal growing...
+					}
+					if (r2d.maskHasPixels()){
+						r2d.growRegion();
+						r2d.fillVoids(); //Fill void
+					}
+					//System.out.println("Eroding");
+					
+					//System.out.println("Eroded");
+					//Copy the mask result to mask3D
+					for (int r = 0;r<height;++r){
+						for (int c = 0;c<width;++c){
+							segmentationMask[r][c][d]=r2d.segmentationMask[r][c];
+						}
+					}
+				}
+				*/
 			}
 			
 		}
