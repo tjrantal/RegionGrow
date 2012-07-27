@@ -85,10 +85,11 @@ public class IJGrower implements PlugIn {
 			RegionGrow3D r3d = new RegionGrow3D(image3D, mask3D, diffLimit);
 			segmentationMask = r3d.segmentationMask;
 		}else{			/*2D region grow*/
+			List threads = new ArrayList();
 			segmentationMask = new byte[width][height][depth];	/*Create the segmentation mask*/
 			/*Go through all of the slices*/
-			double[][] sliceData = new double[width][height];
-			byte[][] sliceMask = new byte[width][height];
+			double[][] sliceData;
+			byte[][] sliceMask;
 			double[] meanAndArea;
 			meanAndArea = RegionGrow3D.getCurrentMeanAndArea(mask3D, image3D);
 			RegionGrow r2d;
@@ -96,6 +97,8 @@ public class IJGrower implements PlugIn {
 			for (int d = 0; d < depth; ++d) {
 				IJ.log("First of three region grows slice "+d);
 				/*Get the slice*/
+				sliceData = new double[width][height];
+				sliceMask = new byte[width][height];
 				maskHasPixels =false;
 				for (int r = 0;r<height;++r){
 					for (int c = 0;c<width;++c){
@@ -108,29 +111,39 @@ public class IJGrower implements PlugIn {
 				}
 				/*Run the region growing*/
 				if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
-					r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-					r2d.growRegion();
-					r2d.fillVoids(); //Fill void
-					for (int i = 0; i< 5; ++i){
-						r2d.erodeMask();	/*Try to remove spurs...*/
-					}
-					/*Copy the mask result to mask3D*/
-					for (int r = 0;r<height;++r){
-						for (int c = 0;c<width;++c){
-							segmentationMask[r][c][d]=r2d.segmentationMask[r][c];
-						}
-					}
-					/*update mean and area*/
-					meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
+				
+					RegionGrow rg = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
+					Thread newThread = new MultiThreader(rg,d,5);
+					newThread.start();
+					threads.add(newThread);
+					IJ.log("Fired up thread "+threads.size()+" d "+d);
+				
 				}
 			}
-			
+			/*Wait for the threads to finish...*/
+			for (int t = 0; t<threads.size();++t){
+				try{
+					((Thread) threads.get(t)).join();
+				}catch(Exception er){}
+				/*Copy the mask result to mask3D*/
+				int d = ((MultiThreader) threads.get(t)).r;
+				for (int r = 0;r<height;++r){
+					for (int c = 0;c<width;++c){
+						segmentationMask[r][c][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[r][c];
+					}
+				}
+				
+				IJ.log("Joined thread "+t);
+				
+			}
+			/*update mean and area*/
+			meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
+					
 			/*Grow up down too*/
 			if(growUpDown){
 				//IJ.log("Into UD");
 				/*Go through all of the slices*/
-				
-				List threads = new ArrayList();
+				threads.clear();
 				for (int r = 0;r<height;++r){
 					IJ.log("Second region grow slice "+r);
 					sliceData = new double[width][depth];
@@ -150,7 +163,7 @@ public class IJGrower implements PlugIn {
 					if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
 						/*Try threading here*/
 						RegionGrow rg = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-						Thread newThread = new MultiThreader(rg,r);
+						Thread newThread = new MultiThreader(rg,r,1);
 						newThread.start();
 						threads.add(newThread);
 						IJ.log("Fired up thread "+threads.size()+" r "+r);
@@ -233,15 +246,19 @@ public class IJGrower implements PlugIn {
 	public class MultiThreader extends Thread{
 		public RegionGrow r2d;
 		public int r;
-		public MultiThreader(RegionGrow r2d, int r){
+		private int erodeReps;
+		public MultiThreader(RegionGrow r2d, int r,int erodeReps){
 			this.r2d = r2d;
 			this.r = r;
+			this.erodeReps = erodeReps;
 		}
 		
 		public void run(){
 			r2d.growRegion();
 			r2d.fillVoids(); //Fill void
-			r2d.erodeMask();	/*Try to remove spurs...*/
+			for (int i = 0; i<erodeReps;++i){
+				r2d.erodeMask();	/*Try to remove spurs...*/
+			}
 		}
 	}
 	
