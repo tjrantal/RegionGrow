@@ -28,6 +28,7 @@ public class IJGrower implements PlugIn {
 	private double diffLimit;
 	private boolean threeD;
 	private boolean growUpDown;
+	private boolean secondGrow;
     public void run(String arg) {
         ImagePlus imp = WindowManager.getCurrentImage();
         /*Check that an image was open*/
@@ -147,6 +148,7 @@ public class IJGrower implements PlugIn {
 						r2d.growRegion();
 						r2d.fillVoids(); //Fill void
 						r2d.erodeMask();	/*Try to remove spurs...*/
+												
 						/*Copy the mask result to mask3D*/
 						for (int d = 0; d < depth; ++d) {
 							for (int c = 0;c<width;++c){
@@ -158,42 +160,44 @@ public class IJGrower implements PlugIn {
 				}
 				
 				/*Grow once more in sagittal direction*/
-				sliceData = new double[width][height];
-				sliceMask = new byte[width][height];
-				
-				for (int d = 0; d < depth; ++d) {
-					IJ.log("Last region grow slice "+d);
-					//Get the slice
-					maskHasPixels = false;
-					for (int r = 0;r<height;++r){
-						for (int c = 0;c<width;++c){
-							sliceData[r][c] = image3D[r][c][d];
-							sliceMask[r][c] = segmentationMask[r][c][d];
-							if (sliceMask[r][c] ==1){
-								maskHasPixels = true;
-							}
-						}
-					}
-					//Run the region growing
-					if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
-						r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-						r2d.erodeMask();	//Remove extra stuff from sagittal growing...
-						r2d.erodeMask();	//Remove extra stuff from sagittal growing...
-						r2d.erodeMask();	//Remove extra stuff from sagittal growing...
-						if (r2d.maskHasPixels()){
-							r2d.growRegion();
-							r2d.fillVoids(); //Fill void
-						}
-						//Copy the mask result to mask3D
+				if (secondGrow){
+					sliceData = new double[width][height];
+					sliceMask = new byte[width][height];
+					
+					for (int d = 0; d < depth; ++d) {
+						IJ.log("Last region grow slice "+d);
+						//Get the slice
+						maskHasPixels = false;
 						for (int r = 0;r<height;++r){
 							for (int c = 0;c<width;++c){
-								segmentationMask[r][c][d]=r2d.segmentationMask[r][c];
+								sliceData[r][c] = image3D[r][c][d];
+								sliceMask[r][c] = segmentationMask[r][c][d];
+								if (sliceMask[r][c] ==1){
+									maskHasPixels = true;
+								}
 							}
 						}
-						meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
+						//Run the region growing
+						if (maskHasPixels){ //Do the remaining steps only if a pixel existed within the slice...
+							r2d = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
+							r2d.erodeMask();	//Remove extra stuff from sagittal growing...
+							r2d.erodeMask();	//Remove extra stuff from sagittal growing...
+							r2d.erodeMask();	//Remove extra stuff from sagittal growing...
+							if (r2d.maskHasPixels()){
+								r2d.growRegion();
+								r2d.fillVoids(); //Fill void
+							}
+							//Copy the mask result to mask3D
+							for (int r = 0;r<height;++r){
+								for (int c = 0;c<width;++c){
+									segmentationMask[r][c][d]=r2d.segmentationMask[r][c];
+								}
+							}
+							meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
+						}
+
+
 					}
-
-
 				}
 				
 			}
@@ -263,6 +267,7 @@ public class IJGrower implements PlugIn {
         gd.addNumericField("maxDiff", 100, 0);
 		gd.addCheckbox("3D", false);
 		gd.addCheckbox("GrowUpDown", false);
+		gd.addCheckbox("SecondGrow", false);
 
         gd.showDialog();
 
@@ -277,6 +282,7 @@ public class IJGrower implements PlugIn {
         diffLimit	= gd.getNextNumber();
 		threeD		= gd.getNextBoolean();
 		growUpDown	= gd.getNextBoolean();
+		secondGrow	= gd.getNextBoolean();
         return true;
     }
 	
