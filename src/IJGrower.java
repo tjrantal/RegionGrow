@@ -92,7 +92,6 @@ public class IJGrower implements PlugIn {
 			byte[][] sliceMask;
 			double[] meanAndArea;
 			meanAndArea = RegionGrow3D.getCurrentMeanAndArea(mask3D, image3D);
-			RegionGrow r2d;
 			boolean maskHasPixels;
 			for (int d = 0; d < depth; ++d) {
 				IJ.log("First of three region grows slice "+d);
