@@ -239,11 +239,12 @@ public class IJGrower implements PlugIn {
 		
 
 		/*Dump out the results*/
+		/*
 		WriteMat writeMat = new WriteMat("C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\matlabDump\\testDump.mat");
 		writeMat.writeArray(image3D,"data");
 		writeMat.writeArray(segmentationMask,"mask");
 		writeMat.closeFile();
-
+		*/
 		/*Visualize result*/
 		Calibration calibration = imp.getCalibration();
         ImagePlus resultStack = createOutputStack(segmentationMask, calibration);
@@ -294,8 +295,8 @@ public class IJGrower implements PlugIn {
 	
 	/*Visual mask result*/
 	private ImagePlus createOutputStack(byte[][][] mask3d, Calibration calibration) {
-		int width	=mask3d[0].length;
-		int height	=mask3d.length;
+		int width	=mask3d.length;
+		int height	=mask3d[0].length;
 		int depth	=mask3d[0][0].length;
         ImageStack resultStack = new ImageStack(width, height);
         int pixels = width*height;

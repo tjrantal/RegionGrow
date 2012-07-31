@@ -61,11 +61,11 @@ public class RegionGrow{
 	
 	public boolean growRegion(){
 		/*Init variables and add seed points to the queue*/
-		rowCount = dataSlice.length;
-		columnCount = dataSlice[0].length;
+		rowCount = dataSlice[0].length;
+		columnCount = dataSlice.length;
 		pixelQueue = new PriorityQueue<NextPixel>();	/*Try to reserve memory to enable faster execution...*/
 		
-		visited = new byte[rowCount][columnCount];
+		visited = new byte[columnCount][rowCount];
 
 		/*Init pixelQueue*/
 		int[][] seedIndices = find(segmentationMask);
@@ -98,15 +98,15 @@ public class RegionGrow{
 				
 				
 				//Check 4-connected neighbour
-				neighbourhood[0][0] = coordinates[0]-1;	/*Up one*/
-				neighbourhood[1][0] = coordinates[0]+1;	/*Down one*/
+				neighbourhood[0][0] = coordinates[0]-1;	/*Left one*/
+				neighbourhood[1][0] = coordinates[0]+1;	/*Right one*/
 				neighbourhood[2][0] = coordinates[0];
 				neighbourhood[3][0] = coordinates[0];
 				
 				neighbourhood[0][1] = coordinates[1];
 				neighbourhood[1][1] = coordinates[1];
-				neighbourhood[2][1] = coordinates[1]-1;	/*Left one*/
-				neighbourhood[3][1] = coordinates[1]+1;	/*Right one*/
+				neighbourhood[2][1] = coordinates[1]-1;	/*Up one*/
+				neighbourhood[3][1] = coordinates[1]+1;	/*Down one*/
 
 				//System.out.println("Qlength "+pixelQueue.size()+" mean "+currentMean+" alt Mean "+currentMean2+" area "+maskArea);
 				checkNeighbours(neighbourhood);
@@ -124,7 +124,7 @@ public class RegionGrow{
 		int[] coordinates;
         for (int r = 0;r<neighbourhood.length;++r){
 			coordinates = neighbourhood[r];
-            if (coordinates[0] >= 0 && coordinates[0] < rowCount && coordinates[1] >=0 && coordinates[1] < columnCount){ //If the neigbour is within the image...
+            if (coordinates[0] >= 0 && coordinates[0] < columnCount && coordinates[1] >=0 && coordinates[1] < rowCount){ //If the neigbour is within the image...
                if (visited[coordinates[0]][coordinates[1]] == (byte) 0 && segmentationMask[coordinates[0]][coordinates[1]] == 0){
 					int[] queCoordinates = {coordinates[0],coordinates[1]};
                   pixelQueue.add(new NextPixel(Math.abs(dataSlice[coordinates[0]][coordinates[1]]-currentMean),queCoordinates));
@@ -192,10 +192,10 @@ public class RegionGrow{
 		
 	/*Erode, fill holes and dilate functions for removing extra stuff*/
 	public void erodeMask(){
-		int rowCount =  segmentationMask.length;
-		int columnCount = segmentationMask[0].length;
-		for (int i=0; i<rowCount; i++){
-			for (int j=0; j<columnCount; j++){
+		int rowCount =  segmentationMask[0].length;
+		int columnCount = segmentationMask.length;
+		for (int i=0; i<columnCount; i++){
+			for (int j=0; j<rowCount; j++){
 				if (segmentationMask[i][j] == 1){
 					if (i>0 && segmentationMask[i-1][j]==0 ||
 						j>0 && segmentationMask[i][j-1]==0 ||
@@ -222,9 +222,9 @@ public class RegionGrow{
 	
 	*/
 	public void fillVoids(){
-		int rowCount =  segmentationMask.length;
-		int columnCount = segmentationMask[0].length;
-		byte[][] background = new byte[rowCount][columnCount];
+		int rowCount =  segmentationMask[0].length;
+		int columnCount = segmentationMask.length;
+		byte[][] background = new byte[columnCount][rowCount];
 		Vector<int[]> queue = new Vector<int[]>(rowCount*columnCount*4);
 		int[] coordinates = {0,0};
 		queue.add(coordinates);	/*Start filling from 0,0...*/
@@ -237,15 +237,15 @@ public class RegionGrow{
 				background[coordinates[0]][coordinates[1]] = 1;
 				
 				//Check 4-connected neighbour
-				neighbourhood[0][0] = coordinates[0]-1;	/*Up one*/
-				neighbourhood[1][0] = coordinates[0]+1;	/*Down one*/
+				neighbourhood[0][0] = coordinates[0]-1;	/*Left one*/
+				neighbourhood[1][0] = coordinates[0]+1;	/*Right one*/
 				neighbourhood[2][0] = coordinates[0];
 				neighbourhood[3][0] = coordinates[0];
 				
 				neighbourhood[0][1] = coordinates[1];
 				neighbourhood[1][1] = coordinates[1];
-				neighbourhood[2][1] = coordinates[1]-1;	/*Left one*/
-				neighbourhood[3][1] = coordinates[1]+1;	/*Right one*/
+				neighbourhood[2][1] = coordinates[1]-1;	/*Up one*/
+				neighbourhood[3][1] = coordinates[1]+1;	/*Down one*/
 				//check whether the neighbour to the left should be added to the queue
 				Vector<Object> returned = checkNeighbours(neighbourhood,segmentationMask, background,queue);
 				segmentationMask = (byte[][])returned.get(0);
@@ -255,8 +255,8 @@ public class RegionGrow{
 		}
 		/*Background filled*/
 		
-		for (int i=0; i<rowCount; i++){
-			for (int j=0; j<columnCount; j++){
+		for (int i=0; i<columnCount; i++){
+			for (int j=0; j<rowCount; j++){
 				if (segmentationMask[i][j]<0.5 && background[i][j] == 0){
 					segmentationMask[i][j] = 1;
 				}
@@ -269,7 +269,7 @@ public class RegionGrow{
 		int[] coordinates;
         for (int r = 0;r<neighbourhood.length;++r){
 			coordinates = neighbourhood[r];
-            if (coordinates[0] >= 0 && coordinates[0] < rowCount && coordinates[1] >=0 && coordinates[1] < columnCount
+            if (coordinates[0] >= 0 && coordinates[0] < columnCount && coordinates[1] >=0 && coordinates[1] < rowCount
 				&& segmentationMask[coordinates[0]][coordinates[1]] == 0 && background[coordinates[0]][coordinates[1]]==0){ //If the neigbour is within the image...
 					int[] queueCoordinates = {coordinates[0],coordinates[1]};
 					queue.add(queueCoordinates);
@@ -281,29 +281,6 @@ public class RegionGrow{
 		returnValue.add(queue);
 		return returnValue;
 	}
-	
-	/*
-	public byte[] dilateMaskHonorColor(byte[] data,byte dilateVal,byte min, byte temp){
-		//Dilate algorithm
-		// Best dilate by one solution taken from http://ostermiller.org/dilate_and_erode.html
-		for (int i=0; i<height; i++){
-			for (int j=0; j<width; j++){
-				if (data[i*width+j] ==dilateVal){
-					if (i>0 && data[(i-1)*width+j]==min) {data[(i-1)*width+j] = temp;}
-					if (j>0 && data[(i)*width+j-1]==min) {data[(i)*width+j-1] = temp;}
-					if (i+1<height && data[(i+1)*width+j]==min) {data[(i+1)*width+j] = temp;}
-					if (j+1<width && data[(i)*width+j+1]==min) {data[(i)*width+j+1] = temp;}
-				}
-			}
-		}
-		for (int i=0; i<width*height; i++){
-			if (data[i] == temp){
-				data[i] = dilateVal;	//Set to proper value here...
-			}
-		}
-		return data;
-	}
-	*/
 	
 	/*Test*/
 	public static void main(String[] are){
@@ -322,8 +299,8 @@ public class RegionGrow{
 		byte[][] mask = {
 						{0,0,0,0,0,0,0,0,0,0},
 						{0,0,0,0,0,0,0,0,0,0},
-						{0,0,0,0,0,1,0,0,0,0},
-						{0,0,0,0,0,0,0,0,0,0},
+						{0,0,0,1,1,1,0,0,0,0},
+						{0,0,0,1,1,1,0,0,0,0},
 						{0,0,0,0,0,0,0,0,0,0},
 						{0,0,0,0,0,0,0,0,0,0},
 						{0,0,0,0,0,0,0,0,0,0},
@@ -332,12 +309,14 @@ public class RegionGrow{
 						{0,0,0,0,0,0,0,0,0,0}
 						};
 		RegionGrow rg = new RegionGrow(image, mask);
+		rg.growRegion();
 		rg.printGrown();
+		
 	}
 	public void printGrown(){
-		for (int r = 0; r<segmentationMask.length;++r){
-			for (int c = 0; c<segmentationMask[r].length;++c){
-				System.out.print((int) segmentationMask[r][c]+"\t");
+		for (int c = 0; c<segmentationMask.length;++c){
+			for (int r = 0; r<segmentationMask[c].length;++r){
+				System.out.print((int) segmentationMask[c][r]+"\t");
 			}
 			System.out.print("\n");
 		}
