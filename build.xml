@@ -1,0 +1,68 @@
+<!-- JFFMpeg ANT build system -->
+
+<project name="IJGrower_" default="jar" basedir=".">
+  <description>
+    Ant build system for IJGrower
+  </description>
+
+  <!-- set global properties for this build -->
+  <property environment="env"/>
+  <property name="projectName" location="IJGrower_" />
+  <property name="JAVA_HOME" location="${env.JAVA_HOME}" />
+  <!-- 
+	paths to dependencies, make sure these match....
+	-->
+	<property name="ijPluginPath2" location="U:/programming/imagej/plugins/jars" /> 
+	
+	<property name="ijPath" location="U:/programming/imagej" />
+	<property name="imagej" location="${ijPath}/ij.jar" />
+	
+	
+	<!--
+  Source paths and build path
+	-->
+  <property name="javasrc" location="src" />
+  <property name="build"   location="build" />
+  <property name="classes" location="${build}/java" />
+  <property name="dist"    location="${build}/dist" />
+
+  <!-- Initialize -->
+  <target name="init">
+    <tstamp/>
+
+    <!-- Echo values passed in so there's no confusion -->
+    <echo message="JAVA_HOME is ${JAVA_HOME}"/>
+	<echo message="imagej is ${imagej}"/>
+    <mkdir dir="${build}" />
+    <mkdir dir="${classes}" />
+  </target>
+
+  <target name="javacompile" depends="init" description="Compile Java source" >
+    <javac source="1.5" srcdir="${javasrc}" destdir="${classes}" nowarn="on">
+		<classpath> 
+			<!--classpath-->
+			<pathelement path="${classes}"/> 
+			<!--jars-->
+			<pathelement location="${imagej}"/> 
+		</classpath>
+    </javac>
+  </target>
+
+  <target name="jar" depends="javacompile" description="Create Jar file" >
+	<!--Copy the  plugins.config to classes-->
+	<copy todir="${classes}" file="${javasrc}/plugins.config"/>
+	<!--Copy the source files to build dir--> 
+	<copy todir="${classes}">
+		<fileset dir="${javasrc}" includes="**/*.java"/>
+	</copy>
+	
+    <mkdir dir="${dist}"/>
+	<jar jarfile="${projectName}.jar" basedir="${classes}"/>
+	<!--Copy the created jar-file to your ij plugins...-->
+	<copy todir="${ijPluginPath2}" file="${projectName}.jar"/>	
+  </target>
+  
+  <target name="clean" description="Remove output files" >
+    <delete dir="${build}"/>
+  </target>
+</project>

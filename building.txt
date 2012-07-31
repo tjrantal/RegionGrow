@@ -1,0 +1,11 @@
+Required tools to build IJGrower ImageJ plug-in:
+Java SDK and ImageJ(obviously)
+Git (git-scm.com/)
+Ant (http://ant.apache.org/, remember to add JAVA_HOME ANT_HOME and ANT_HOME/bin to your path)
+
+
+Compile ImageJ with ant, i.e. cd to imagej folder and run "ant" from command line, wait ~30 s and build should finish.
+
+
+Check that the paths in ijGrower folder build.xml match the paths on your computer.
+Run ant in ijGrower folder and you're done.
