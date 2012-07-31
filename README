@@ -4,3 +4,5 @@ Just simple 2D and 3D region growing stuff. Couldn't find one that fitted my exa
 and ended up writing one more region growig plug-in. I'm working for a specific goal, so the code is straying further and further away from a generic solution.
 
 N.B. Decided to add my own matlab dump code. Using http://bigwww.epfl.ch/sage/soft/mij/ would probably have been a good choice as well..
+=======
+and ended up writing one more region growig plug-in...

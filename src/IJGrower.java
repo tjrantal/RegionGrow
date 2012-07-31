@@ -58,25 +58,25 @@ public class IJGrower implements PlugIn {
 		final Object[] imageArrayPointers = stack.getImageArray();
 		
 		/*Construct a 3D memory stack*/
-        double [][][] image3D = new double[height][width][depth];
+        double [][][] image3D = new double[width][height][depth];
 		short[] temp;
         for (int d = 0; d < depth; ++d) {
             temp = (short[]) imageArrayPointers[d];
 			for (int r = 0;r<height;++r){
 				for (int c = 0;c<width;++c){
-					image3D[r][c][d] = (double) temp[c+r*width];
+					image3D[c][r][d] = (double) temp[c+r*width];
 				}
 			}
         }
 		
 		/*Construct the segmented mask*/
-		byte[][][] mask3D = new byte[height][width][depth];	/*Initialized to zero by Java as default*/
+		byte[][][] mask3D = new byte[width][height][depth];	/*Initialized to zero by Java as default*/
 		byte[][][] segmentationMask;
 		/*Create Seed volume, experimentally chosen....*/
 		for (int d = seedPoints[4]; d < seedPoints[5]; ++d) {
 			for (int r = seedPoints[2];r<seedPoints[3];++r){
 				for (int c = seedPoints[0];c<seedPoints[1];++c){
-					mask3D[r][c][d] = (byte) 1;
+					mask3D[c][r][d] = (byte) 1;
 				}
 			}
         }
@@ -86,7 +86,7 @@ public class IJGrower implements PlugIn {
 			segmentationMask = r3d.segmentationMask;
 		}else{			/*2D region grow*/
 			List threads = new ArrayList();
-			segmentationMask = new byte[height][width][depth];	/*Create the segmentation mask*/
+			segmentationMask = new byte[width][height][depth];	/*Create the segmentation mask*/
 			/*Go through all of the slices*/
 			double[][] sliceData;
 			byte[][] sliceMask;
@@ -101,9 +101,9 @@ public class IJGrower implements PlugIn {
 				maskHasPixels =false;
 				for (int r = 0;r<height;++r){
 					for (int c = 0;c<width;++c){
-						sliceData[r][c] = image3D[r][c][d];
-						sliceMask[r][c] = mask3D[r][c][d];
-						if (sliceMask[r][c] ==1){
+						sliceData[c][r] = image3D[c][r][d];
+						sliceMask[c][r] = mask3D[c][r][d];
+						if (sliceMask[c][r] ==1){
 							maskHasPixels = true;
 						}
 					}
@@ -128,7 +128,7 @@ public class IJGrower implements PlugIn {
 				int d = ((MultiThreader) threads.get(t)).r;
 				for (int r = 0;r<height;++r){
 					for (int c = 0;c<width;++c){
-						segmentationMask[r][c][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[r][c];
+						segmentationMask[c][r][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][r];
 					}
 				}
 				
@@ -151,8 +151,8 @@ public class IJGrower implements PlugIn {
 					maskHasPixels = false;
 					for (int d = 0; d < depth; ++d) {
 						for (int c = 0;c<width;++c){
-							sliceData[c][d] = image3D[r][c][d];
-							sliceMask[c][d] = segmentationMask[r][c][d];
+							sliceData[c][d] = image3D[c][r][d];
+							sliceMask[c][d] = segmentationMask[c][r][d];
 							if (sliceMask[c][d] ==1){
 								maskHasPixels = true;
 							}
@@ -178,7 +178,7 @@ public class IJGrower implements PlugIn {
 					int r = ((MultiThreader) threads.get(t)).r;
 					for (int d = 0; d < depth; ++d) {
 						for (int c = 0;c<width;++c){
-							segmentationMask[r][c][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][d];
+							segmentationMask[c][r][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][d];
 						}
 					}
 					
@@ -198,9 +198,9 @@ public class IJGrower implements PlugIn {
 						maskHasPixels = false;
 						for (int r = 0;r<height;++r){
 							for (int c = 0;c<width;++c){
-								sliceData[r][c] = image3D[r][c][d];
-								sliceMask[r][c] = segmentationMask[r][c][d];
-								if (sliceMask[r][c] ==1){
+								sliceData[c][r] = image3D[c][r][d];
+								sliceMask[c][r] = segmentationMask[c][r][d];
+								if (sliceMask[c][r] ==1){
 									maskHasPixels = true;
 								}
 							}
@@ -224,7 +224,7 @@ public class IJGrower implements PlugIn {
 						int d = ((MultiThreader) threads.get(t)).r;
 						for (int r = 0;r<height;++r){
 							for (int c = 0;c<width;++c){
-								segmentationMask[r][c][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[r][c];
+								segmentationMask[c][r][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][r];
 							}
 						}
 						IJ.log("Joined thread "+t);
@@ -237,12 +237,13 @@ public class IJGrower implements PlugIn {
 		}
 		
 		
+
 		/*Dump out the results*/
 		WriteMat writeMat = new WriteMat("C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\matlabDump\\testDump.mat");
 		writeMat.writeArray(image3D,"data");
 		writeMat.writeArray(segmentationMask,"mask");
 		writeMat.closeFile();
-		
+
 		/*Visualize result*/
 		Calibration calibration = imp.getCalibration();
         ImagePlus resultStack = createOutputStack(segmentationMask, calibration);
@@ -305,7 +306,7 @@ public class IJGrower implements PlugIn {
 			byte[] slicePixels = new byte[width*height];
 			for (int r = 0;r<height;++r){
 				for (int c = 0;c<width;++c){
-					if (mask3d[r][c][d] == 0){
+					if (mask3d[c][r][d] == 0){
 						slicePixels[c+r*width] = 0;
 					}else{
 						slicePixels[c+r*width] = (byte) 0xff;
