@@ -205,33 +205,63 @@ public class RegionGrow2D extends RegionGrow{
 		int columnCount = segmentationMask.length;
 		byte[][] background = new byte[columnCount][rowCount];
 		Vector<int[]> queue = new Vector<int[]>(rowCount*columnCount*4);
-		int[] coordinates = {0,0};
-		queue.add(coordinates);	/*Start filling from 0,0...*/
-		/*Fill background*/
-		int[][] neighbourhood = new int[4][2];
-		while (queue.size()>0){
-			coordinates=queue.lastElement();
-			queue.remove(queue.size()-1);
-			if (background[coordinates[0]][coordinates[1]] == 0 && segmentationMask[coordinates[0]][coordinates[1]] < 1){
-				background[coordinates[0]][coordinates[1]] = 1;
-				
-				//Check 4-connected neighbour
-				neighbourhood[0][0] = coordinates[0]-1;	/*Left one*/
-				neighbourhood[1][0] = coordinates[0]+1;	/*Right one*/
-				neighbourhood[2][0] = coordinates[0];
-				neighbourhood[3][0] = coordinates[0];
-				
-				neighbourhood[0][1] = coordinates[1];
-				neighbourhood[1][1] = coordinates[1];
-				neighbourhood[2][1] = coordinates[1]-1;	/*Up one*/
-				neighbourhood[3][1] = coordinates[1]+1;	/*Down one*/
-				//check whether the neighbour to the left should be added to the queue
-				Vector<Object> returned = checkNeighbours(neighbourhood,segmentationMask, background,queue);
-				segmentationMask = (byte[][])returned.get(0);
-				background = (byte[][])returned.get(1);
-				queue = (Vector<int[]>)returned.get(2);
-			}			
+		int[][] borderPixels = new int[(columnCount-1+rowCount-1)*2][2];
+		int bPi = 0;
+		/*Add top and bottom border*/
+		for (int i = 0; i<columnCount;++i){
+			/*Top*/
+			borderPixels[bPi][0] = i;
+			borderPixels[bPi][1] = 0;
+			bPi++;
+			/*Bottom*/
+			borderPixels[bPi][0] = i;
+			borderPixels[bPi][1] = rowCount-1;
+			bPi++;
 		}
+		/*Add left and right borders. N.B. corners have already been added...*/
+		for (int j = 1; j<rowCount-1;++j){
+			/*Top*/
+			borderPixels[bPi][0] = 0;
+			borderPixels[bPi][1] = j;
+			bPi++;
+			/*Bottom*/
+			borderPixels[bPi][0] = columnCount-1;
+			borderPixels[bPi][1] = j;
+			bPi++;
+		}
+		int[] coordinates = new int[2];
+		for (int bp = 0;bp<borderPixels.length;++bp){
+			/*Start the filling from each border pixel*/
+			coordinates[0] = borderPixels[bp][0];
+			coordinates[1] = borderPixels[bp][1];
+			queue.add(coordinates);	/*Start filling from 0,0...*/
+			/*Fill background*/
+			int[][] neighbourhood = new int[4][2];
+			while (queue.size()>0){
+				coordinates=queue.lastElement();
+				queue.remove(queue.size()-1);
+				if (background[coordinates[0]][coordinates[1]] == 0 && segmentationMask[coordinates[0]][coordinates[1]] < 1){
+					background[coordinates[0]][coordinates[1]] = 1;
+					
+					//Check 4-connected neighbour
+					neighbourhood[0][0] = coordinates[0]-1;	/*Left one*/
+					neighbourhood[1][0] = coordinates[0]+1;	/*Right one*/
+					neighbourhood[2][0] = coordinates[0];
+					neighbourhood[3][0] = coordinates[0];
+					
+					neighbourhood[0][1] = coordinates[1];
+					neighbourhood[1][1] = coordinates[1];
+					neighbourhood[2][1] = coordinates[1]-1;	/*Up one*/
+					neighbourhood[3][1] = coordinates[1]+1;	/*Down one*/
+					//check whether the neighbour to the left should be added to the queue
+					Vector<Object> returned = checkNeighbours(neighbourhood,segmentationMask, background,queue);
+					segmentationMask = (byte[][])returned.get(0);
+					background = (byte[][])returned.get(1);
+					queue = (Vector<int[]>)returned.get(2);
+				}			
+			}
+		}
+		
 		/*Background filled*/
 		
 		for (int i=0; i<columnCount; i++){

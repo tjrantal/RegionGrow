@@ -266,9 +266,15 @@ public class IJGrower implements PlugIn {
 		
 		/*Visualize result*/
 		Calibration calibration = imp.getCalibration();
+		double[] vRange = {imp.getDisplayRangeMin(),imp.getDisplayRangeMax()};
 		/*Visualize segmentation on the original image*/
 		ImagePlus visualizationStack = createVisualizationStack(segmentationMask,image3D, calibration);
+		visualizationStack.setDisplayRange(vRange[0],vRange[1]);
 		visualizationStack.show();
+		/*Visualize segmentation on horizontal plane*/
+		ImagePlus horizontalStack = createHorizontalVisualizationStack(segmentationMask,image3D, calibration);
+		horizontalStack.setDisplayRange(vRange[0],vRange[1]);
+		horizontalStack.show();
 		/*Visualize mask*/
         ImagePlus resultStack = createOutputStack(segmentationMask, calibration);
 		resultStack.show();
@@ -312,6 +318,48 @@ public class IJGrower implements PlugIn {
 				}
 			}
 		}
+	}
+	
+	/*Horizontal image result*/
+	private ImagePlus  createHorizontalVisualizationStack(byte[][][] mask3d,double[][][] data3d, Calibration calibration) {
+		int width	=mask3d.length;
+		int height	=mask3d[0].length;
+		int depth	=mask3d[0][0].length;
+		int aspectRatioCorrection = (int) (calibration.pixelDepth/calibration.pixelWidth);
+        ImageStack resultStack = new ImageStack(width, depth*aspectRatioCorrection);
+		double[][] tempSlice = new double[width][depth];
+		for (int r = 0;r<height;++r){
+			/*Set Pixels*/
+			
+			for (int d = 0; d < depth; ++d) {
+				for (int c = 0;c<width;++c){
+					if (mask3d[c][r][d] == 0){
+						tempSlice[c][d] = (short) (data3d[c][r][d]*0.5);
+					}else{
+						tempSlice[c][d] = (short) data3d[c][r][d];
+					}
+				}
+			}
+			/*ResizeImage*/
+			short[] slicePixels = new short[width*depth*aspectRatioCorrection];
+			for (int d = 0; d < depth*aspectRatioCorrection; ++d) {
+				for (int c = 0;c<width;++c){
+					slicePixels[c+d*width] = (short) (Filters.getBicubicInterpolatedPixel((double) c, ((double) d)/((double)aspectRatioCorrection), tempSlice));
+				}
+			}
+			
+			//impS
+            resultStack.addSlice(null,slicePixels);
+
+        }
+		ImagePlus returnStack = new ImagePlus("Visualization", resultStack);
+		/*Set Calibration*/
+		returnStack.getCalibration().pixelWidth = calibration.pixelWidth;
+		returnStack.getCalibration().pixelHeight  = calibration.pixelWidth;//calibration.pixelDepth;
+		returnStack.getCalibration().pixelDepth  = calibration.pixelHeight;
+		returnStack.getCalibration().setUnit("mm");
+		//returnStack.setDisplayRange( 0, 1);
+        return returnStack;
 	}
 	
 	/*Visual image result*/
