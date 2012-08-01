@@ -7,7 +7,65 @@
 
 package	ijGrower;
 
+import java.text.DecimalFormat;	/*For debugging*/
+
 public class Filters{
+	
+	
+	public static double[][] getVarianceImage(double[][] data, int radius){
+		int width = data.length;
+		int height = data[0].length;
+		double[][] varianceImage = new double[width][height];
+		double[] coordinates = new double[2];
+		for (int i = 0+radius;i<width-(radius);++i){
+			for (int j = 0+radius;j<width-(radius);++j){
+				coordinates[0] = i;
+				coordinates[1] = j;
+				varianceImage[i][j] = getLocalVariance(data,coordinates,radius);
+			}
+		}
+		return varianceImage;
+	}
+	
+	/*Local variance with circular sampling. Eight samples per integer increment of radius*/
+	public static double getLocalVariance(double[][] data,double[] coordinates,int radius){
+		/*Init sampling coordinates*/
+		double[][] samplingCoordinates = new double[8*radius+1][2];
+		samplingCoordinates[8*radius] = coordinates;
+		final double sqrt05 = Math.sqrt(0.5);
+		final double[][] directions = {{1,0},{sqrt05,sqrt05},{0,1},{-sqrt05,sqrt05},{-1,0},{-sqrt05,-sqrt05},{0,-1},{sqrt05,-sqrt05}};
+		for (int r=0;r<radius;++r){
+			for (int t = 0;t <8; ++t){
+				samplingCoordinates[t*r][0] = coordinates[0]+directions[t][0]*((double)(r+1));
+				samplingCoordinates[t*r][1] = coordinates[1]+directions[t][1]*((double)(r+1));
+			}
+		}
+		/*Get the values*/
+		double[] values = new double[8*radius+1];
+		for (int i = 0; i<samplingCoordinates.length;++i){
+			values[i] = getBicubicInterpolatedPixel(samplingCoordinates[i][0],samplingCoordinates[i][1],data);
+		}
+		return getVariance(values);
+	}
+	
+	public static double getMean(double[] data){
+		double sum = 0;
+		for (int i = 0; i<data.length; ++i){
+			sum+= data[i];
+		}
+		sum/=((double) data.length);
+		return sum;
+	}
+	
+	public static double getVariance(double[] data){
+		double variance = 0;
+		double mean = getMean(data);
+		for (int i = 0; i<data.length; ++i){
+			variance+= Math.pow(data[i]-mean,2.0);
+		}
+		variance/=((double) data.length);
+		return variance;
+	}
 	
 	/** This method is from Chapter 16 of "Digital Image Processing:
 		An Algorithmic Introduction Using Java" by Burger and Burge
@@ -64,12 +122,16 @@ public class Filters{
 		System.out.println("1.5 1 "+getBicubicInterpolatedPixel(1.5, 1.0, data));
 		System.out.println("0.5 0.5 "+getBicubicInterpolatedPixel(0.5, 0.5, data));
 		System.out.println("2.3 2.0 "+getBicubicInterpolatedPixel(2.3, 2, data));
+		double[][] variance = getVarianceImage(data,1);
+		System.out.println("VarianceImage");
+		printMatrix(variance);
 	}
 	
 	public static void printMatrix(double[][] matrix){
+		DecimalFormat f = new DecimalFormat("0.#");
 		for (int x = 0; x< matrix.length;++x){
 			for (int y = 0; y<matrix[x].length;++y){
-				System.out.print((int) matrix[x][y]+"\t");
+				System.out.print(f.format(matrix[x][y])+"\t");
 			}
 			System.out.println();
 		}
