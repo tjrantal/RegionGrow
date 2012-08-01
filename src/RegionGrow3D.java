@@ -8,21 +8,18 @@ import java.util.PriorityQueue;
 
 /*3D region grow*/
 
-public class RegionGrow3D{
+public class RegionGrow3D extends RegionGrow{
 	
 	
 	/*Parameters*/
 	private double[][][] dataSlice;
 	public byte[][][] segmentationMask;
-	private double maxDiff;
+	
 	
 	/*Global variables, saves effort in declaring functions...*/
-	private int rowCount;
-	private int columnCount;
 	private int depthCount;
 	private byte[][][] visited;
-	private double currentMean;
-	private PriorityQueue<NextPixel> pixelQueue;
+
 	/*Constructor for default maxDiff
 		@param dataSlice		A 3D image stack, e.g. DICOM image stack
 		@param segmentationMask	A 3D segmentation mask containing the seed points as 1 and others as 0	
@@ -51,10 +48,10 @@ public class RegionGrow3D{
 	private void growRegion(){
 		/*Init variables and add seed points to the queue*/
 		pixelQueue	= new PriorityQueue<NextPixel>(1000000);
-		rowCount	= dataSlice.length;
-		columnCount	= dataSlice[0].length;
+		columnCount	= dataSlice.length;
+		rowCount	= dataSlice[0].length;
 		depthCount	= dataSlice[0][0].length;
-		visited		= new byte[rowCount][columnCount][depthCount];
+		visited		= new byte[columnCount][rowCount][depthCount];
 		
 		currentMean = getCurrentMean();
 			
@@ -92,8 +89,8 @@ public class RegionGrow3D{
 				
 				
 				//Check 4-connected neighbour
-				neighbourhood[0][0] = coordinates[0]-1;	/*Up one*/
-				neighbourhood[1][0] = coordinates[0]+1;	/*Down one*/
+				neighbourhood[0][0] = coordinates[0]-1;	/*Left one*/
+				neighbourhood[1][0] = coordinates[0]+1;	/*Right one*/
 				neighbourhood[2][0] = coordinates[0];
 				neighbourhood[3][0] = coordinates[0];
 				neighbourhood[4][0] = coordinates[0];
@@ -101,8 +98,8 @@ public class RegionGrow3D{
 				
 				neighbourhood[0][1] = coordinates[1];
 				neighbourhood[1][1] = coordinates[1];
-				neighbourhood[2][1] = coordinates[1]-1;	/*Left one*/
-				neighbourhood[3][1] = coordinates[1]+1;	/*Right one*/
+				neighbourhood[2][1] = coordinates[1]-1;	/*Up one*/
+				neighbourhood[3][1] = coordinates[1]+1;	/*Down one*/
 				neighbourhood[4][1] = coordinates[1];
 				neighbourhood[5][1] = coordinates[1];
 
@@ -128,8 +125,8 @@ public class RegionGrow3D{
 		int[] coordinates;
         for (int r = 0;r<neighbourhood.length;++r){
 			coordinates = neighbourhood[r];
-            if (coordinates[0] >= 0 && coordinates[0] < rowCount && 
-				coordinates[1] >=0 && coordinates[1] < columnCount &&
+            if (coordinates[0] >= 0 && coordinates[0] < columnCount && 
+				coordinates[1] >=0 && coordinates[1] <  rowCount &&
 				coordinates[2] >=0 && coordinates[2] < depthCount){ //If the neigbour is within the image...
                if (visited[coordinates[0]][coordinates[1]][coordinates[2]] == (byte) 0 && segmentationMask[coordinates[0]][coordinates[1]][coordinates[2]] == 0){
 					int[] queCoordinates = {coordinates[0],coordinates[1],coordinates[2]};
@@ -173,65 +170,6 @@ public class RegionGrow3D{
 		return sum;
 	}
 	
-	
-	public static double[] getCurrentMeanAndArea(byte[][][] segmentationMask, double[][][] dataSlice){
-		int[][] indices = findStatic(segmentationMask);
-		double sum = 0;
-		for (int i = 0; i<indices.length; ++i){
-			sum+= dataSlice[indices[i][0]][indices[i][1]][indices[i][2]];
-		}
-		sum/=((double) indices.length);
-		double[] returnValue = {sum, (double) indices.length};
-		return returnValue;
-	}
-	
-	public static int[][] findStatic(byte[][][] matrix){
-		int[][] temp = new int[matrix.length*matrix[0].length*matrix[0][0].length][3];
-		int found = 0;
-		for (int i = 0; i< matrix.length;++i){
-			for (int j = 0; j< matrix[i].length;++j){
-				for (int k = 0; k< matrix[i][j].length;++k){
-					if (matrix[i][j][k] > 0){
-						temp[found][0] = i;
-						temp[found][1] = j;
-						temp[found][2] = k;
-						++found;					
-					}
-				}
-			}
-		}
-		int[][] indices = new int[found][3];
-		for (int i = 0; i<found; ++i){
-			for (int j = 0; j< 3; ++j){
-				indices[i][j] = temp[i][j];
-			}
-		}
-		return indices;
-	}
-
-   /*Next Pixel for pixel queue, comparable enables always getting the smallest value*/
-	class NextPixel implements Comparable<NextPixel> {
-		public int[] coordinates;
-		public double cost;
-		public NextPixel(double cost, int[] coordinates){
-			this.cost =cost;
-			this.coordinates = coordinates;
-		}
-
-		public int compareTo(NextPixel other){
-			if( cost < other.cost){
-				return -1;
-			}else{ 
-				if( cost > other.cost){ 
-					return +1;
-				}else{
-					return 0;
-				}
-			}
-		}
-
-	}	    	
-
 	/*Test*/
 	public static void main(String[] are){
 		double[][][] image = {

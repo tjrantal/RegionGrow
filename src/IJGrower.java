@@ -111,7 +111,7 @@ public class IJGrower implements PlugIn {
 				/*Run the region growing*/
 				if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
 				
-					RegionGrow rg = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
+					RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
 					Thread newThread = new MultiThreader(rg,d,5);
 					newThread.start();
 					threads.add(newThread);
@@ -136,7 +136,7 @@ public class IJGrower implements PlugIn {
 				
 			}
 			/*update mean and area*/
-			meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
+			meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 					
 			/*Grow up down too*/
 			if(growUpDown){
@@ -161,7 +161,7 @@ public class IJGrower implements PlugIn {
 					/*Run the region growing*/
 					if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
 						/*Try threading here*/
-						RegionGrow rg = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
+						RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
 						Thread newThread = new MultiThreader(rg,r,1);
 						newThread.start();
 						threads.add(newThread);
@@ -185,7 +185,7 @@ public class IJGrower implements PlugIn {
 					IJ.log("Joined thread "+t);
 					
 				}
-				meanAndArea = RegionGrow3D.getCurrentMeanAndArea(segmentationMask, image3D);
+				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				/*Grow once more in sagittal direction*/
 				if (secondGrow){
 					
@@ -208,7 +208,7 @@ public class IJGrower implements PlugIn {
 						//Run the region growing
 						if (maskHasPixels){ //Do the remaining steps only if a pixel existed within the slice...
 						
-							RegionGrow rg = new RegionGrow(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
+							RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
 							Thread newThread = new MultiThreader(rg,d,0,10);
 							newThread.start();
 							threads.add(newThread);
@@ -254,20 +254,20 @@ public class IJGrower implements PlugIn {
 	
 	/*Try multithreading*/
 	public class MultiThreader extends Thread{
-		public RegionGrow r2d;
+		public RegionGrow2D r2d;
 		public int r;
 		private int erodeReps;
 		private int preErodeReps;
 		private boolean preErode;
 		/*Costructor*/
-		public MultiThreader(RegionGrow r2d, int r,int erodeReps){
+		public MultiThreader(RegionGrow2D r2d, int r,int erodeReps){
 			this.r2d = r2d;
 			this.r = r;
 			this.erodeReps = erodeReps;
 			preErode = false;
 		}
 		/*Costructor with pre-erode*/
-		public MultiThreader(RegionGrow r2d, int r,int erodeReps,int preErodeReps){
+		public MultiThreader(RegionGrow2D r2d, int r,int erodeReps,int preErodeReps){
 			this.r2d = r2d;
 			this.r = r;
 			this.erodeReps = erodeReps;
