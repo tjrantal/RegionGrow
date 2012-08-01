@@ -18,7 +18,7 @@ public class Filters{
 		double[][] varianceImage = new double[width][height];
 		double[] coordinates = new double[2];
 		for (int i = 0+radius;i<width-(radius);++i){
-			for (int j = 0+radius;j<width-(radius);++j){
+			for (int j = 0+radius;j<height-(radius);++j){
 				coordinates[0] = i;
 				coordinates[1] = j;
 				varianceImage[i][j] = getLocalVariance(data,coordinates,radius);
