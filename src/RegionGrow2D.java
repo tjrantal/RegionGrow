@@ -158,9 +158,16 @@ public class RegionGrow2D extends RegionGrow{
 		return sum;
 	}
 	
-
-
-
+	private double getStdev(double mean){
+		int[][] indices = find(segmentationMask);
+		double stDev = 0;
+		for (int i = 0; i<indices.length; ++i){
+			stDev+= Math.pow(dataSlice[indices[i][0]][indices[i][1]]-mean,2.0);
+		}
+		stDev/=((double) indices.length);
+		return Math.sqrt(stDev);
+	}
+	
 		
 	/*Erode, fill holes and dilate functions for removing extra stuff*/
 	public void erodeMask(){

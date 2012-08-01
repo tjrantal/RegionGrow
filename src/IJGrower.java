@@ -29,6 +29,7 @@ public class IJGrower implements PlugIn {
 	private boolean threeD;
 	private boolean growUpDown;
 	private boolean secondGrow;
+	private boolean stdGrow;
     public void run(String arg) {
         ImagePlus imp = WindowManager.getCurrentImage();
         /*Check that an image was open*/
@@ -91,7 +92,13 @@ public class IJGrower implements PlugIn {
 			double[][] sliceData;
 			byte[][] sliceMask;
 			double[] meanAndArea;
-			meanAndArea = RegionGrow3D.getCurrentMeanAndArea(mask3D, image3D);
+			double stDev;
+			meanAndArea = RegionGrow.getCurrentMeanAndArea(mask3D, image3D);
+			if (stdGrow){
+				stDev = RegionGrow.getStdev(mask3D, image3D,meanAndArea[0]);
+				diffLimit = 2.0*stDev;
+			}
+			IJ.log("DiffLimit "+diffLimit);
 			boolean maskHasPixels;
 			for (int d = 0; d < depth; ++d) {
 				IJ.log("First of three region grows slice "+d);
@@ -137,7 +144,11 @@ public class IJGrower implements PlugIn {
 			}
 			/*update mean and area*/
 			meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-					
+			if (stdGrow){
+				stDev = RegionGrow.getStdev(mask3D, image3D,meanAndArea[0]);
+				diffLimit = 2.0*stDev;
+			}
+			IJ.log("DiffLimit "+diffLimit);		
 			/*Grow up down too*/
 			if(growUpDown){
 				//IJ.log("Into UD");
@@ -186,6 +197,11 @@ public class IJGrower implements PlugIn {
 					
 				}
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+				if (stdGrow){
+					stDev = RegionGrow.getStdev(mask3D, image3D,meanAndArea[0]);
+					diffLimit = 2.0*stDev;
+				}
+				IJ.log("DiffLimit "+diffLimit);
 				/*Grow once more in sagittal direction*/
 				if (secondGrow){
 					
@@ -350,6 +366,7 @@ public class IJGrower implements PlugIn {
 		gd.addCheckbox("3D", false);
 		gd.addCheckbox("GrowUpDown", false);
 		gd.addCheckbox("SecondGrow", false);
+		gd.addCheckbox("StdGrow", false);		/*Use seed area 2*STDev as maxdiff*/
 
         gd.showDialog();
 
@@ -365,6 +382,7 @@ public class IJGrower implements PlugIn {
 		threeD		= gd.getNextBoolean();
 		growUpDown	= gd.getNextBoolean();
 		secondGrow	= gd.getNextBoolean();
+		stdGrow		= gd.getNextBoolean();
         return true;
     }
 	

@@ -49,6 +49,17 @@ public abstract class RegionGrow{
 		return returnValue;
 	}
 	
+	public static double getStdev(byte[][][] segmentationMask, double[][][] dataSlice,double mean){
+		int[][] indices = findStatic(segmentationMask);
+		double stDev = 0;
+		for (int i = 0; i<indices.length; ++i){
+			stDev+= Math.pow(dataSlice[indices[i][0]][indices[i][1]][indices[i][2]]-mean,2.0);
+		}
+		stDev/=((double) indices.length);
+		return Math.sqrt(stDev);
+	}
+	
+	
 	/*Find mask indices from 3D stack*/
 	public static int[][] findStatic(byte[][][] matrix){
 		int[][] temp = new int[matrix.length*matrix[0].length*matrix[0][0].length][3];
