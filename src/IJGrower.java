@@ -96,12 +96,12 @@ public class IJGrower implements PlugIn {
 			meanAndArea = RegionGrow.getCurrentMeanAndArea(mask3D, image3D);
 			if (stdGrow){
 				stDev = RegionGrow.getStdev(mask3D, image3D,meanAndArea[0]);
-				diffLimit = 2.0*stDev;
+				diffLimit = 3.0*stDev;
 			}
-			IJ.log("DiffLimit "+diffLimit);
+			IJ.log("Mean "+meanAndArea[0]+" DiffLimit "+diffLimit);
 			boolean maskHasPixels;
 			for (int d = 0; d < depth; ++d) {
-				IJ.log("First of three region grows slice "+d);
+				//IJ.log("First of three region grows slice "+d);
 				/*Get the slice*/
 				sliceData = new double[width][height];
 				sliceMask = new byte[width][height];
@@ -119,10 +119,10 @@ public class IJGrower implements PlugIn {
 				if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
 				
 					RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-					Thread newThread = new MultiThreader(rg,d,5);
+					Thread newThread = new MultiThreader(rg,d,0);
 					newThread.start();
 					threads.add(newThread);
-					IJ.log("Fired up thread "+threads.size()+" d "+d);
+					//IJ.log("Fired up thread "+threads.size()+" d "+d);
 				
 				}
 			}
@@ -139,23 +139,24 @@ public class IJGrower implements PlugIn {
 					}
 				}
 				
-				IJ.log("Joined thread "+t);
+				//IJ.log("Joined thread "+t);
 				
 			}
-			/*update mean and area*/
-			meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-			if (stdGrow){
-				stDev = RegionGrow.getStdev(mask3D, image3D,meanAndArea[0]);
-				diffLimit = 2.0*stDev;
-			}
-			IJ.log("DiffLimit "+diffLimit);		
+				
 			/*Grow up down too*/
 			if(growUpDown){
+				/*update mean and area*/
+				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+				if (stdGrow){
+					stDev = RegionGrow.getStdev(mask3D, image3D,meanAndArea[0]);
+					diffLimit = 3.0*stDev;
+				}
+				IJ.log("Mean "+meanAndArea[0]+" DiffLimit "+diffLimit);
 				//IJ.log("Into UD");
 				/*Go through all of the slices*/
 				threads.clear();
 				for (int r = 0;r<height;++r){
-					IJ.log("Second region grow slice "+r);
+					//IJ.log("Second region grow slice "+r);
 					sliceData = new double[width][depth];
 					sliceMask = new byte[width][depth];
 					/*Get the slice*/
@@ -176,7 +177,7 @@ public class IJGrower implements PlugIn {
 						Thread newThread = new MultiThreader(rg,r,1);
 						newThread.start();
 						threads.add(newThread);
-						IJ.log("Fired up thread "+threads.size()+" r "+r);
+						//IJ.log("Fired up thread "+threads.size()+" r "+r);
 					}
 				}
 				
@@ -193,21 +194,21 @@ public class IJGrower implements PlugIn {
 						}
 					}
 					
-					IJ.log("Joined thread "+t);
+					//IJ.log("Joined thread "+t);
 					
 				}
-				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-				if (stdGrow){
-					stDev = RegionGrow.getStdev(mask3D, image3D,meanAndArea[0]);
-					diffLimit = 2.0*stDev;
-				}
-				IJ.log("DiffLimit "+diffLimit);
+
 				/*Grow once more in sagittal direction*/
 				if (secondGrow){
-					
+					meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+					if (stdGrow){
+						stDev = RegionGrow.getStdev(mask3D, image3D,meanAndArea[0]);
+						diffLimit = 3.0*stDev;
+					}
+					IJ.log("Mean "+meanAndArea[0]+" DiffLimit "+diffLimit);
 					threads.clear();
 					for (int d = 0; d < depth; ++d) {
-						IJ.log("Last region grow slice "+d);
+						//IJ.log("Last region grow slice "+d);
 						//Get the slice
 						sliceData = new double[width][height];
 						sliceMask = new byte[width][height];
@@ -228,7 +229,7 @@ public class IJGrower implements PlugIn {
 							Thread newThread = new MultiThreader(rg,d,0,10);
 							newThread.start();
 							threads.add(newThread);
-							IJ.log("Fired up thread "+threads.size()+" d "+d);
+							//IJ.log("Fired up thread "+threads.size()+" d "+d);
 						}
 					}
 					/*Wait for the threads to finish...*/
@@ -243,7 +244,7 @@ public class IJGrower implements PlugIn {
 								segmentationMask[c][r][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][r];
 							}
 						}
-						IJ.log("Joined thread "+t);
+						//IJ.log("Joined thread "+t);
 					}
 					
 				}
@@ -261,8 +262,14 @@ public class IJGrower implements PlugIn {
 		writeMat.writeArray(segmentationMask,"mask");
 		writeMat.closeFile();
 		*/
+		
+		
 		/*Visualize result*/
 		Calibration calibration = imp.getCalibration();
+		/*Visualize segmentation on the original image*/
+		ImagePlus visualizationStack = createVisualizationStack(segmentationMask,image3D, calibration);
+		visualizationStack.show();
+		/*Visualize mask*/
         ImagePlus resultStack = createOutputStack(segmentationMask, calibration);
 		resultStack.show();
     }
@@ -307,7 +314,40 @@ public class IJGrower implements PlugIn {
 		}
 	}
 	
+	/*Visual image result*/
+	private ImagePlus createVisualizationStack(byte[][][] mask3d,double[][][] data3d, Calibration calibration) {
+		int width	=mask3d.length;
+		int height	=mask3d[0].length;
+		int depth	=mask3d[0][0].length;
+        ImageStack resultStack = new ImageStack(width, height);
+        int pixels = width*height;
 	
+		
+        for (int d = 0; d < depth; ++d) {
+			/*Set Pixels*/
+			short[] slicePixels = new short[width*height];
+			for (int r = 0;r<height;++r){
+				for (int c = 0;c<width;++c){
+					if (mask3d[c][r][d] == 0){
+						slicePixels[c+r*width] = (short) (data3d[c][r][d]*0.5);
+					}else{
+						slicePixels[c+r*width] = (short) data3d[c][r][d];
+					}
+				}
+			}
+			//impS
+            resultStack.addSlice(null,slicePixels);
+
+        }
+		ImagePlus returnStack = new ImagePlus("Visualization", resultStack);
+		/*Set Calibration*/
+		returnStack.getCalibration().pixelWidth = calibration.pixelWidth;
+		returnStack.getCalibration().pixelHeight  = calibration.pixelHeight;
+		returnStack.getCalibration().pixelDepth  = calibration.pixelDepth;
+		returnStack.getCalibration().setUnit("mm");
+		//returnStack.setDisplayRange( 0, 1);
+        return returnStack;
+	}
 	
 	/*Visual mask result*/
 	private ImagePlus createOutputStack(byte[][][] mask3d, Calibration calibration) {

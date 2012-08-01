@@ -120,8 +120,8 @@ public class RegionGrow2D extends RegionGrow{
 			coordinates = neighbourhood[r];
             if (coordinates[0] >= 0 && coordinates[0] < columnCount && coordinates[1] >=0 && coordinates[1] < rowCount){ //If the neigbour is within the image...
                if (visited[coordinates[0]][coordinates[1]] == (byte) 0 && segmentationMask[coordinates[0]][coordinates[1]] == 0){
-					int[] queCoordinates = {coordinates[0],coordinates[1]};
-                  pixelQueue.add(new NextPixel(Math.abs(dataSlice[coordinates[0]][coordinates[1]]-currentMean),queCoordinates));
+					int[] queueCoordinates = {coordinates[0],coordinates[1]};
+                  pixelQueue.add(new NextPixel(Math.abs(dataSlice[coordinates[0]][coordinates[1]]-currentMean),queueCoordinates));
                }
             }
         }
