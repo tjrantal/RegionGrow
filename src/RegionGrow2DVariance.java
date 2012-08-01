@@ -7,39 +7,30 @@ package ijGrower;
 import java.util.PriorityQueue;
 import java.util.Vector;
 
-public class RegionGrow2D extends RegionGrow{
+public class RegionGrow2DVariance extends RegionGrow2D{
 	
 	
 	/*Parameters*/
-	private double[][] dataSlice;
-	public byte[][] segmentationMask;
+	private double[][] varianceSlice;
 	
 	/*Global variables, saves effort in declaring functions...*/
-	private byte[][] visited;
+	private double varianceMean;
 
 	/*Constructor for default maxDiff*/
-	public RegionGrow2D(double[][] dataSlice, byte[][] segmentationMask){
-		this.dataSlice = dataSlice;
-		this.segmentationMask = segmentationMask;
-		this.maxDiff = 250.0;
-		currentMean = getCurrentMean();
+	public RegionGrow2DVariance(double[][] dataSlice, byte[][] segmentationMask, double[][] varianceSlice){
+		super(dataSlice,segmentationMask);
 	}
 	
 	/*Constructor with maxDiff*/
-	public RegionGrow2D(double[][] dataSlice, byte[][] segmentationMask, double maxDiff){
-		this.dataSlice = dataSlice;
-		this.segmentationMask = segmentationMask;
-		this.maxDiff = maxDiff;
-		currentMean = getCurrentMean();
+	public RegionGrow2DVariance(double[][] dataSlice, byte[][] segmentationMask, double[][] varianceSlice, double maxDiff){
+		super(dataSlice,segmentationMask,maxDiff);
 	}
 	
 	/*Constructor with maxDiff, mean and area*/
-	public RegionGrow2D(double[][] dataSlice, byte[][] segmentationMask, double maxDiff, double currentMean, long maskArea){
-		this.dataSlice = dataSlice;
-		this.segmentationMask = segmentationMask;
-		this.maxDiff = maxDiff;
-		this.currentMean = currentMean;
-		this.maskArea = maskArea;
+	public RegionGrow2DVariance(double[][] dataSlice, byte[][] segmentationMask, double[][] varianceSlice, double maxDiff, double currentMean, long maskArea, double varianceMean){
+		super(dataSlice,segmentationMask,maxDiff,currentMean,maskArea);
+		this.varianceSlice = varianceSlice;
+		this.varianceMean = varianceMean;
 	}
 	
 	public boolean maskHasPixels(){
@@ -62,11 +53,13 @@ public class RegionGrow2D extends RegionGrow{
 		visited = new byte[columnCount][rowCount];
 
 		/*Init pixelQueue*/
-		int[][] seedIndices = find(segmentationMask);
+		int[][] seedIndices = super.find(segmentationMask);
 		if (seedIndices == null){return false;}
+		double cost;
 		for (int i = 0; i<seedIndices.length; ++i){
 			int[] coordinates = {seedIndices[i][0],seedIndices[i][1]};
-			pixelQueue.add(new NextPixel(Math.abs(dataSlice[seedIndices[i][0]][seedIndices[i][1]]-currentMean),coordinates));
+			cost = Math.abs(dataSlice[seedIndices[i][0]][seedIndices[i][1]]-currentMean)+Math.abs(varianceSlice[seedIndices[i][0]][seedIndices[i][1]]-varianceMean);
+			pixelQueue.add(new NextPixel(cost,coordinates));
 		}
 		
 		/*Grow Region*/
@@ -114,221 +107,19 @@ public class RegionGrow2D extends RegionGrow{
 	}
 	
 	/*Update pixel queue*/
-	private void checkNeighbours(int[][] neighbourhood){
+	protected void checkNeighbours(int[][] neighbourhood){
 		int[] coordinates;
+		double cost;
         for (int r = 0;r<neighbourhood.length;++r){
 			coordinates = neighbourhood[r];
             if (coordinates[0] >= 0 && coordinates[0] < columnCount && coordinates[1] >=0 && coordinates[1] < rowCount){ //If the neigbour is within the image...
                if (visited[coordinates[0]][coordinates[1]] == (byte) 0 && segmentationMask[coordinates[0]][coordinates[1]] == 0){
 					int[] queueCoordinates = {coordinates[0],coordinates[1]};
-                  pixelQueue.add(new NextPixel(Math.abs(dataSlice[coordinates[0]][coordinates[1]]-currentMean),queueCoordinates));
+					cost = Math.abs(dataSlice[coordinates[0]][coordinates[1]]-currentMean)+Math.abs(varianceSlice[coordinates[0]][coordinates[1]]-varianceMean);
+                  pixelQueue.add(new NextPixel(cost,queueCoordinates));
                }
             }
         }
-	}
-	
-	private int[][] find(byte[][] matrix){
-		int[][] temp = new int[matrix.length*matrix[0].length][2];
-		int found = 0;
-		for (int i = 0; i< matrix.length;++i){
-			for (int j = 0; j< matrix[i].length;++j){
-				if (matrix[i][j] > 0){
-					temp[found][0] = i;
-					temp[found][1] = j;
-					++found;					
-				}
-			}
-		}
-		int[][] indices = new int[found][2];
-		for (int i = 0; i<found; ++i){
-			for (int j = 0; j< 2; ++j){
-				indices[i][j] = temp[i][j];
-			}
-		}
-		return indices;
-	}
-	
-	private double getCurrentMean(){
-		int[][] indices = find(segmentationMask);
-		double sum = 0;
-		for (int i = 0; i<indices.length; ++i){
-			sum+= dataSlice[indices[i][0]][indices[i][1]];
-		}
-		sum/=((double) indices.length);
-		return sum;
-	}
-	
-	private double getStdev(double mean){
-		int[][] indices = find(segmentationMask);
-		double stDev = 0;
-		for (int i = 0; i<indices.length; ++i){
-			stDev+= Math.pow(dataSlice[indices[i][0]][indices[i][1]]-mean,2.0);
-		}
-		stDev/=((double) indices.length);
-		return Math.sqrt(stDev);
-	}
-	
-		
-	/*Erode, fill holes and dilate functions for removing extra stuff*/
-	public void erodeMask(){
-		int rowCount =  segmentationMask[0].length;
-		int columnCount = segmentationMask.length;
-		for (int i=0; i<columnCount; i++){
-			for (int j=0; j<rowCount; j++){
-				if (segmentationMask[i][j] == 1){
-					if (i>0 && segmentationMask[i-1][j]==0 ||
-						j>0 && segmentationMask[i][j-1]==0 ||
-						i+1<rowCount && segmentationMask[i+1][j]==0 ||
-						j+1<columnCount && segmentationMask[i][j+1]==0)
-						{segmentationMask[i][j] = -1;}	//Erode the pixel if any of the neighborhood pixels is background
-				}
-			}
-		}
-		
-		for (int i=0; i<rowCount; i++){
-			for (int j=0; j<columnCount; j++){
-				if (segmentationMask[i][j]==-1){
-					segmentationMask[i][j] = 0;
-				}
-			}
-		}
-	}
-	
-	/*
-	Fill voids within mask...
-	First fill the surroundings
-	then fill the remainder, which should be the holes...
-	
-	*/
-	public void fillVoids(){
-		int rowCount =  segmentationMask[0].length;
-		int columnCount = segmentationMask.length;
-		byte[][] background = new byte[columnCount][rowCount];
-		Vector<int[]> queue = new Vector<int[]>(rowCount*columnCount*4);
-		int[][] borderPixels = new int[(columnCount-1+rowCount-1)*2][2];
-		int bPi = 0;
-		/*Add top and bottom border*/
-		for (int i = 0; i<columnCount;++i){
-			/*Top*/
-			borderPixels[bPi][0] = i;
-			borderPixels[bPi][1] = 0;
-			bPi++;
-			/*Bottom*/
-			borderPixels[bPi][0] = i;
-			borderPixels[bPi][1] = rowCount-1;
-			bPi++;
-		}
-		/*Add left and right borders. N.B. corners have already been added...*/
-		for (int j = 1; j<rowCount-1;++j){
-			/*Top*/
-			borderPixels[bPi][0] = 0;
-			borderPixels[bPi][1] = j;
-			bPi++;
-			/*Bottom*/
-			borderPixels[bPi][0] = columnCount-1;
-			borderPixels[bPi][1] = j;
-			bPi++;
-		}
-		int[] coordinates = new int[2];
-		for (int bp = 0;bp<borderPixels.length;++bp){
-			/*Start the filling from each border pixel*/
-			coordinates[0] = borderPixels[bp][0];
-			coordinates[1] = borderPixels[bp][1];
-			queue.add(coordinates);	/*Start filling from 0,0...*/
-			/*Fill background*/
-			int[][] neighbourhood = new int[4][2];
-			while (queue.size()>0){
-				coordinates=queue.lastElement();
-				queue.remove(queue.size()-1);
-				if (background[coordinates[0]][coordinates[1]] == 0 && segmentationMask[coordinates[0]][coordinates[1]] < 1){
-					background[coordinates[0]][coordinates[1]] = 1;
-					
-					//Check 4-connected neighbour
-					neighbourhood[0][0] = coordinates[0]-1;	/*Left one*/
-					neighbourhood[1][0] = coordinates[0]+1;	/*Right one*/
-					neighbourhood[2][0] = coordinates[0];
-					neighbourhood[3][0] = coordinates[0];
-					
-					neighbourhood[0][1] = coordinates[1];
-					neighbourhood[1][1] = coordinates[1];
-					neighbourhood[2][1] = coordinates[1]-1;	/*Up one*/
-					neighbourhood[3][1] = coordinates[1]+1;	/*Down one*/
-					//check whether the neighbour to the left should be added to the queue
-					Vector<Object> returned = checkNeighbours(neighbourhood,segmentationMask, background,queue);
-					segmentationMask = (byte[][])returned.get(0);
-					background = (byte[][])returned.get(1);
-					queue = (Vector<int[]>)returned.get(2);
-				}			
-			}
-		}
-		
-		/*Background filled*/
-		
-		for (int i=0; i<columnCount; i++){
-			for (int j=0; j<rowCount; j++){
-				if (segmentationMask[i][j]<0.5 && background[i][j] == 0){
-					segmentationMask[i][j] = 1;
-				}
-			}
-		}
-	}	
-
-	/*Update pixel queue*/
-	private Vector<Object> checkNeighbours(int[][] neighbourhood,byte[][] segmentationMask, byte[][] background,Vector<int[]> queue){
-		int[] coordinates;
-        for (int r = 0;r<neighbourhood.length;++r){
-			coordinates = neighbourhood[r];
-            if (coordinates[0] >= 0 && coordinates[0] < columnCount && coordinates[1] >=0 && coordinates[1] < rowCount
-				&& segmentationMask[coordinates[0]][coordinates[1]] == 0 && background[coordinates[0]][coordinates[1]]==0){ //If the neigbour is within the image...
-					int[] queueCoordinates = {coordinates[0],coordinates[1]};
-					queue.add(queueCoordinates);
-            }
-        }
-		Vector<Object> returnValue = new Vector<Object>();
-		returnValue.add(segmentationMask);
-		returnValue.add(background);
-		returnValue.add(queue);
-		return returnValue;
-	}
-	
-	/*Test*/
-	public static void main(String[] are){
-		double[][] image = {
-						{0,0,0,0,0,0,0,0,0,0},
-						{0,0,0,0,0,0,0,0,0,0},
-						{0,0,0,500,500,500,251,249,0,0},
-						{0,0,0,500,500,500,251,249,0,0},
-						{0,0,0,500,500,500,251,249,0,0},
-						{0,0,0,500,500,500,251,249,0,0},
-						{0,0,0,500,500,500,251,249,0,0},
-						{0,0,0,500,500,500,251,249,0,0},
-						{0,0,0,0,0,0,0,0,0,0},
-						{0,0,0,0,0,0,0,0,0,0}
-						};
-		byte[][] mask = {
-						{0,0,0,0,0,0,0,0,0,0},
-						{0,0,0,0,0,0,0,0,0,0},
-						{0,0,0,1,1,1,0,0,0,0},
-						{0,0,0,1,1,1,0,0,0,0},
-						{0,0,0,0,0,0,0,0,0,0},
-						{0,0,0,0,0,0,0,0,0,0},
-						{0,0,0,0,0,0,0,0,0,0},
-						{0,0,0,0,0,0,0,0,0,0},
-						{0,0,0,0,0,0,0,0,0,0},
-						{0,0,0,0,0,0,0,0,0,0}
-						};
-		RegionGrow2D rg = new RegionGrow2D(image, mask);
-		rg.growRegion();
-		rg.printGrown();
-		
-	}
-	public void printGrown(){
-		for (int c = 0; c<segmentationMask.length;++c){
-			for (int r = 0; r<segmentationMask[c].length;++r){
-				System.out.print((int) segmentationMask[c][r]+"\t");
-			}
-			System.out.print("\n");
-		}
 	}
 }
 

@@ -11,11 +11,11 @@ public class RegionGrow2D extends RegionGrow{
 	
 	
 	/*Parameters*/
-	private double[][] dataSlice;
+	protected double[][] dataSlice;
 	public byte[][] segmentationMask;
 	
 	/*Global variables, saves effort in declaring functions...*/
-	private byte[][] visited;
+	protected byte[][] visited;
 
 	/*Constructor for default maxDiff*/
 	public RegionGrow2D(double[][] dataSlice, byte[][] segmentationMask){
@@ -114,7 +114,7 @@ public class RegionGrow2D extends RegionGrow{
 	}
 	
 	/*Update pixel queue*/
-	private void checkNeighbours(int[][] neighbourhood){
+	protected void checkNeighbours(int[][] neighbourhood){
 		int[] coordinates;
         for (int r = 0;r<neighbourhood.length;++r){
 			coordinates = neighbourhood[r];
@@ -127,7 +127,7 @@ public class RegionGrow2D extends RegionGrow{
         }
 	}
 	
-	private int[][] find(byte[][] matrix){
+	protected int[][] find(byte[][] matrix){
 		int[][] temp = new int[matrix.length*matrix[0].length][2];
 		int found = 0;
 		for (int i = 0; i< matrix.length;++i){
@@ -148,7 +148,7 @@ public class RegionGrow2D extends RegionGrow{
 		return indices;
 	}
 	
-	private double getCurrentMean(){
+	protected double getCurrentMean(){
 		int[][] indices = find(segmentationMask);
 		double sum = 0;
 		for (int i = 0; i<indices.length; ++i){
@@ -158,7 +158,7 @@ public class RegionGrow2D extends RegionGrow{
 		return sum;
 	}
 	
-	private double getStdev(double mean){
+	protected double getStdev(double mean){
 		int[][] indices = find(segmentationMask);
 		double stDev = 0;
 		for (int i = 0; i<indices.length; ++i){
@@ -274,7 +274,7 @@ public class RegionGrow2D extends RegionGrow{
 	}	
 
 	/*Update pixel queue*/
-	private Vector<Object> checkNeighbours(int[][] neighbourhood,byte[][] segmentationMask, byte[][] background,Vector<int[]> queue){
+	protected Vector<Object> checkNeighbours(int[][] neighbourhood,byte[][] segmentationMask, byte[][] background,Vector<int[]> queue){
 		int[] coordinates;
         for (int r = 0;r<neighbourhood.length;++r){
 			coordinates = neighbourhood[r];
