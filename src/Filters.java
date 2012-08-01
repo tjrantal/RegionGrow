@@ -17,10 +17,11 @@ public class Filters{
 		int height = data[0].length;
 		double[][] varianceImage = new double[width][height];
 		double[] coordinates = new double[2];
-		for (int i = 0+radius;i<width-(radius);++i){
-			for (int j = 0+radius;j<height-(radius);++j){
+		for (int i = 0+radius;i<width-radius;++i){
+			for (int j = 0+radius;j<height-radius;++j){
 				coordinates[0] = i;
 				coordinates[1] = j;
+				//System.out.println("source x "+coordinates[0]+" y "+coordinates[1]);
 				varianceImage[i][j] = getLocalVariance(data,coordinates,radius);
 			}
 		}
@@ -36,14 +37,17 @@ public class Filters{
 		final double[][] directions = {{1,0},{sqrt05,sqrt05},{0,1},{-sqrt05,sqrt05},{-1,0},{-sqrt05,-sqrt05},{0,-1},{sqrt05,-sqrt05}};
 		for (int r=0;r<radius;++r){
 			for (int t = 0;t <8; ++t){
-				samplingCoordinates[t*r][0] = coordinates[0]+directions[t][0]*((double)(r+1));
-				samplingCoordinates[t*r][1] = coordinates[1]+directions[t][1]*((double)(r+1));
+				samplingCoordinates[t+(r*8)][0] = coordinates[0]+directions[t][0]*((double)(r+1));
+				samplingCoordinates[t+(r*8)][1] = coordinates[1]+directions[t][1]*((double)(r+1));
+				
 			}
 		}
 		/*Get the values*/
 		double[] values = new double[8*radius+1];
+		//DecimalFormat f = new DecimalFormat("0.#");
 		for (int i = 0; i<samplingCoordinates.length;++i){
 			values[i] = getBicubicInterpolatedPixel(samplingCoordinates[i][0],samplingCoordinates[i][1],data);
+			//System.out.println("\tsampling x\t"+f.format(samplingCoordinates[i][0])+"\ty\t"+f.format(samplingCoordinates[i][1])+"\tval\t"+f.format(values[i]));
 		}
 		return getVariance(values);
 	}
@@ -112,16 +116,31 @@ public class Filters{
 	}
 	
 	public static void main(String[] ar){
+		/*
 		double[][] data = {{0,1,2,3},
 							{2,3,4,5},
 							{2,3,4,5},
 							{3,4,5,6}};
+							*/
+							
+		double[][] data = {{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,2,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1}};
 		printMatrix(data);
-		System.out.println("1.3 1.3 "+getBicubicInterpolatedPixel(1.3, 1.3, data));
-		System.out.println("1 1.5 "+getBicubicInterpolatedPixel(1.0, 1.5, data));
-		System.out.println("1.5 1 "+getBicubicInterpolatedPixel(1.5, 1.0, data));
-		System.out.println("0.5 0.5 "+getBicubicInterpolatedPixel(0.5, 0.5, data));
-		System.out.println("2.3 2.0 "+getBicubicInterpolatedPixel(2.3, 2, data));
+		/*
+		double[][] interpolated = new double[14][14];
+		for (int i = 0; i< 14;++i){
+			for (int j = 0; j< 14;++j){
+				interpolated[i][j] = getBicubicInterpolatedPixel(((double) i)*0.5,((double) j)*0.5,data);
+			}
+		}
+		System.out.println("InterpolatedImage");
+		printMatrix(interpolated);
+		*/
 		double[][] variance = getVarianceImage(data,1);
 		System.out.println("VarianceImage");
 		printMatrix(variance);
