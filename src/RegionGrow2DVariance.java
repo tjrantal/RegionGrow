@@ -115,7 +115,7 @@ public class RegionGrow2DVariance extends RegionGrow2D{
             if (coordinates[0] >= 0 && coordinates[0] < columnCount && coordinates[1] >=0 && coordinates[1] < rowCount){ //If the neigbour is within the image...
                if (visited[coordinates[0]][coordinates[1]] == (byte) 0 && segmentationMask[coordinates[0]][coordinates[1]] == 0){
 					int[] queueCoordinates = {coordinates[0],coordinates[1]};
-					cost = Math.abs(dataSlice[coordinates[0]][coordinates[1]]-currentMean)+Math.abs(varianceSlice[coordinates[0]][coordinates[1]]-varianceMean);
+					cost = Math.abs(dataSlice[coordinates[0]][coordinates[1]]-currentMean)+2.0*Math.abs(varianceSlice[coordinates[0]][coordinates[1]]-varianceMean);
                   pixelQueue.add(new NextPixel(cost,queueCoordinates));
                }
             }
