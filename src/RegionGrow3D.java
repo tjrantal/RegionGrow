@@ -87,11 +87,16 @@ public class RegionGrow3D extends RegionGrow{
 		IJ.log("Number of seed points "+seedIndices.length);
 		double[] lbpHist;
  		for (int i = 0; i<seedIndices.length; ++i){
-			int[] coordinates = {seedIndices[i][0],seedIndices[i][1],seedIndices[i][2]};
-			lbpHist = lbp.histc(lbp.reshape(lbp3D,coordinates[0]-lbpBlockRadius,coordinates[0]+lbpBlockRadius,coordinates[1]-lbpBlockRadius,coordinates[1]+lbpBlockRadius,coordinates[2],coordinates[2]));
-			pixelQueue.add(new NextPixel(1.0-lbp.checkClose(lbpHist,lbpModelHist),coordinates));
-		}
+			if (seedIndices[i][0] >= lbpBlockRadius && seedIndices[i][0] < columnCount-lbpBlockRadius && 
+				seedIndices[i][1] >= lbpBlockRadius && seedIndices[i][1] <  rowCount-lbpBlockRadius &&
+				seedIndices[i][2] >=0				&& seedIndices[i][2] < depthCount){
 		
+				int[] coordinates = {seedIndices[i][0],seedIndices[i][1],seedIndices[i][2]};
+				lbpHist = lbp.histc(lbp.reshape(lbp3D,coordinates[0]-lbpBlockRadius,coordinates[0]+lbpBlockRadius,coordinates[1]-lbpBlockRadius,coordinates[1]+lbpBlockRadius,coordinates[2],coordinates[2]));
+				pixelQueue.add(new NextPixel(1.0-lbp.checkClose(lbpHist,lbpModelHist),coordinates));
+			}
+		}
+		IJ.log("Seed set "+seedIndices.length);
 		/*Grow Region*/
 		NextPixel nextPixel;
 		long maskArea = seedIndices.length;

@@ -95,31 +95,20 @@ public class IJGrowerLBP implements PlugIn {
         }
 		
 		/*Grow seed mask...*/
-		segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,4.5,0,5);
+		int lbpRadius = 9;
+		segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,4.5,0,2*lbpRadius);
 		/*Get LBP model histogram*/
 		double[] lbpModelHist = lbp.histc(lbp.reshape(lbp3D,segmentationMask));
 		/*Grow stack*/
-		if (threeD){	//3D region grow
-			//RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, diffLimit);
-			IJ.log("Starting 3D");
-			RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.16,lbp3D,lbp,5,lbpModelHist);
-			segmentationMask = r3d.segmentationMask;
-			IJ.log("3D done");
-		}else{			//2D region grow
-		
-			segmentationMask = horizontalPlaneSegmentation(image3D,segmentationMask,3.0,0,1);
-			//Grow up down too
-			if(growUpDown){
-				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,4.5,0,0);
-			//Grow once more in sagittal direction
-				if (secondGrow){
-					
-				}
-				
-			}
-			
+		IJ.log("Starting 3D");
+
+		RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.1,lbp3D,lbp,lbpRadius,lbpModelHist);
+		segmentationMask = r3d.segmentationMask;
+		IJ.log("3D done");
+		/*Grow once more in frontal plane...*/
+		if (secondGrow){
+			segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,1.0,0,0);
 		}
-		
 
 
 		/*Dump out the results*/
@@ -140,9 +129,11 @@ public class IJGrowerLBP implements PlugIn {
 		visualizationStack.setDisplayRange(vRange[0],vRange[1]);
 		visualizationStack.show();
 		//Visualize segmentation on horizontal plane
+		/*
 		ImagePlus horizontalStack = createHorizontalVisualizationStack(segmentationMask,image3D, calibration);
 		horizontalStack.setDisplayRange(vRange[0],vRange[1]);
 		horizontalStack.show();
+		*/
 		//Visualize mask
 		
         ImagePlus resultStack = createOutputStack(segmentationMask, calibration);
