@@ -102,7 +102,7 @@ public class IJGrowerLBP implements PlugIn {
 		if (threeD){	//3D region grow
 			//RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, diffLimit);
 			IJ.log("Starting 3D");
-			RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.15,lbp3D,lbp,5,lbpModelHist);
+			RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.16,lbp3D,lbp,5,lbpModelHist);
 			segmentationMask = r3d.segmentationMask;
 			IJ.log("3D done");
 		}else{			//2D region grow
