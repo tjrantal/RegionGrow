@@ -213,6 +213,16 @@ public class LBP{
 		return array;
 	}
 	
+		/*reshape 3D Matrix*/
+	public double[] reshape(double[][][] dataIn,byte[][][] mask){
+		int[][] indices = RegionGrow.findStatic(mask);
+		double[] array = new double[indices.length];
+		for (int i = 0;i<indices.length;++i){
+					array[i] = dataIn[indices[i][0]][indices[i][1]][indices[i][2]];
+		}
+		return array;
+	}
+	
 	private double sum(double[] arrayIn){
 		double temp = 0;
 		for (int i = 0;i< arrayIn.length;++i){

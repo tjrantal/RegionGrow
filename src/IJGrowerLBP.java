@@ -93,13 +93,16 @@ public class IJGrowerLBP implements PlugIn {
 				}
 			}
         }
+		
+		/*Grow seed mask...*/
+		segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,4.5,0,5);
 		/*Get LBP model histogram*/
-		double[] lbpModelHist = lbp.histc(lbp.reshape(lbp3D,seedPoints[0],seedPoints[1],seedPoints[2],seedPoints[3],seedPoints[4],seedPoints[5]));
+		double[] lbpModelHist = lbp.histc(lbp.reshape(lbp3D,segmentationMask));
 		/*Grow stack*/
 		if (threeD){	//3D region grow
 			//RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, diffLimit);
 			IJ.log("Starting 3D");
-			RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.18,lbp3D,lbp,7,lbpModelHist);
+			RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.15,lbp3D,lbp,5,lbpModelHist);
 			segmentationMask = r3d.segmentationMask;
 			IJ.log("3D done");
 		}else{			//2D region grow
