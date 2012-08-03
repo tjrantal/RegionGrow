@@ -20,6 +20,8 @@ public class RegionGrow3D extends RegionGrow{
 	private double[][][] lbp3D;
 	private int lbpBlockRadius;
 	private LBP lbp;
+	private double greyLimit;
+	private double greySTD;
 	/*Global variables, saves effort in declaring functions...*/
 	private int depthCount;
 	private byte[][][] visited;
@@ -54,7 +56,7 @@ public class RegionGrow3D extends RegionGrow{
 		@param segmentationMask	A 3D segmentation mask containing the seed points as 1 and others as 0
 		@param maxDiff			The maximum difference from mean of points within segmentationMask to be grown to. The mask will grow to all pixels connected to the mask that difer from the mean less than this value.
 	*/
-	public RegionGrow3D(double[][][] dataSlice, byte[][][] segmentationMask, double maxDiff,double[][][] lbp3D,LBP lbp,int lbpBlockRadius ,double[] lbpModelHist){
+	public RegionGrow3D(double[][][] dataSlice, byte[][][] segmentationMask, double maxDiff,double[][][] lbp3D,LBP lbp,int lbpBlockRadius ,double[] lbpModelHist,double greyLimit,double greySTD){
 		this.dataSlice = dataSlice;
 		this.segmentationMask = segmentationMask;
 		this.maxDiff = maxDiff;
@@ -62,6 +64,8 @@ public class RegionGrow3D extends RegionGrow{
 		this.lbp = lbp;
 		setLBPModel(lbpModelHist);
 		this.lbpBlockRadius = lbpBlockRadius;
+		this.greyLimit = greyLimit;
+		this.greySTD = greySTD;
 		//System.out.println("Constructor w");
 		growRegionLBP();
 	}
@@ -148,6 +152,30 @@ public class RegionGrow3D extends RegionGrow{
 		
 	}
 	
+	/*Update pixel queue LBP*/
+	private void checkNeighboursLBP(int[][] neighbourhood){
+		int[] coordinates;
+		double[] lbpHist;
+        for (int r = 0;r<neighbourhood.length;++r){
+			coordinates = neighbourhood[r];
+            if (coordinates[0] >= lbpBlockRadius && coordinates[0] < columnCount-lbpBlockRadius && 
+				coordinates[1] >=lbpBlockRadius && coordinates[1] <  rowCount-lbpBlockRadius &&
+				coordinates[2] >=0 && coordinates[2] < depthCount){ //If the neigbour is within the image...
+
+               if (visited[coordinates[0]][coordinates[1]][coordinates[2]] == (byte) 0 && segmentationMask[coordinates[0]][coordinates[1]][coordinates[2]] == 0 &&
+					/*Demand that pixel has correct grey level*/
+					dataSlice[coordinates[0]][coordinates[1]][coordinates[2]] >= greyLimit-greySTD && 
+					dataSlice[coordinates[0]][coordinates[1]][coordinates[2]] <= greyLimit+greySTD
+			   ){
+					int[] queueCoordinates = {coordinates[0],coordinates[1],coordinates[2]};
+					/*Calculate lbpHistogram and compare to modelHistogram*/
+					lbpHist = lbp.histc(lbp.reshape(lbp3D,coordinates[0]-lbpBlockRadius,coordinates[0]+lbpBlockRadius,coordinates[1]-lbpBlockRadius,coordinates[1]+lbpBlockRadius,coordinates[2],coordinates[2]));
+                  pixelQueue.add(new NextPixel(1.0-lbp.checkClose(lbpHist,lbpModelHist),queueCoordinates));
+               }
+            }
+        }
+	}
+	
 	private void growRegion(){
 		/*Init variables and add seed points to the queue*/
 		pixelQueue	= new PriorityQueue<NextPixel>(1000000);
@@ -222,26 +250,6 @@ public class RegionGrow3D extends RegionGrow{
 		}
 		
 	}
-	
-	/*Update pixel queue LBP*/
-	private void checkNeighboursLBP(int[][] neighbourhood){
-		int[] coordinates;
-		double[] lbpHist;
-        for (int r = 0;r<neighbourhood.length;++r){
-			coordinates = neighbourhood[r];
-            if (coordinates[0] >= lbpBlockRadius && coordinates[0] < columnCount-lbpBlockRadius && 
-				coordinates[1] >=lbpBlockRadius && coordinates[1] <  rowCount-lbpBlockRadius &&
-				coordinates[2] >=0 && coordinates[2] < depthCount){ //If the neigbour is within the image...
-               if (visited[coordinates[0]][coordinates[1]][coordinates[2]] == (byte) 0 && segmentationMask[coordinates[0]][coordinates[1]][coordinates[2]] == 0){
-					int[] queueCoordinates = {coordinates[0],coordinates[1],coordinates[2]};
-					/*Calculate lbpHistogram and compare to modelHistogram*/
-					lbpHist = lbp.histc(lbp.reshape(lbp3D,coordinates[0]-lbpBlockRadius,coordinates[0]+lbpBlockRadius,coordinates[1]-lbpBlockRadius,coordinates[1]+lbpBlockRadius,coordinates[2],coordinates[2]));
-                  pixelQueue.add(new NextPixel(1.0-lbp.checkClose(lbpHist,lbpModelHist),queueCoordinates));
-               }
-            }
-        }
-	}
-	
 	
 	/*Update pixel queue*/
 	private void checkNeighbours(int[][] neighbourhood){
