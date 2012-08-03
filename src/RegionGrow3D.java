@@ -5,6 +5,8 @@
 package ijGrower;
 
 import java.util.PriorityQueue;
+/*debugging*/
+import ij.IJ;
 
 /*3D region grow*/
 
@@ -82,24 +84,25 @@ public class RegionGrow3D extends RegionGrow{
 		System.out.println("Start Init");
 		/*Init pixelQueue*/
 		int[][] seedIndices = find(segmentationMask);
-
-		for (int i = 0; i<seedIndices.length; ++i){
+		IJ.log("Number of seed points "+seedIndices.length);
+		double[] lbpHist;
+ 		for (int i = 0; i<seedIndices.length; ++i){
 			int[] coordinates = {seedIndices[i][0],seedIndices[i][1],seedIndices[i][2]};
-			pixelQueue.add(new NextPixel(1.0,coordinates));
+			lbpHist = lbp.histc(lbp.reshape(lbp3D,coordinates[0]-lbpBlockRadius,coordinates[0]+lbpBlockRadius,coordinates[1]-lbpBlockRadius,coordinates[1]+lbpBlockRadius,coordinates[2],coordinates[2]));
+			pixelQueue.add(new NextPixel(1.0-lbp.checkClose(lbpHist,lbpModelHist),coordinates));
 		}
 		
 		/*Grow Region*/
 		NextPixel nextPixel;
-		System.out.println("Start Growing");
 		long maskArea = seedIndices.length;
 		int[][] neighbourhood = new int[6][3];
 		int[] coordinates;
 		while (pixelQueue.size() > 0){ //Go through all cells in queue
-			nextPixel  = pixelQueue.poll();	/*Get the pixel with the lowest cost and remove it from the queue*/
+			nextPixel  =  pixelQueue.poll();	/*Get the pixel with the lowest cost and remove it from the queue*/
 			/*	Add 4-connected neighbourhood to the  queue, unless the
 			neighbourhood pixels have already been visited or are part of the
 			mask already		*/
-			if (nextPixel.cost >= maxDiff){    //If cost is still more than maxDiff, LBP match is closer the higher the number...
+			if (nextPixel.cost <= maxDiff){    //If cost is still more than maxDiff, LBP match is closer the higher the number...
 				coordinates = nextPixel.coordinates;
 				//System.out.println("r "+coordinates[0]+" c "+coordinates[1]);
 				visited[coordinates[0]][coordinates[1]][coordinates[2]] = (byte) 1;
@@ -222,13 +225,13 @@ public class RegionGrow3D extends RegionGrow{
         for (int r = 0;r<neighbourhood.length;++r){
 			coordinates = neighbourhood[r];
             if (coordinates[0] >= lbpBlockRadius && coordinates[0] < columnCount-lbpBlockRadius && 
-				coordinates[1] >=0 && coordinates[1] <  rowCount &&
-				coordinates[2] >=lbpBlockRadius && coordinates[2] < depthCount-lbpBlockRadius){ //If the neigbour is within the image...
+				coordinates[1] >=lbpBlockRadius && coordinates[1] <  rowCount-lbpBlockRadius &&
+				coordinates[2] >=0 && coordinates[2] < depthCount){ //If the neigbour is within the image...
                if (visited[coordinates[0]][coordinates[1]][coordinates[2]] == (byte) 0 && segmentationMask[coordinates[0]][coordinates[1]][coordinates[2]] == 0){
 					int[] queueCoordinates = {coordinates[0],coordinates[1],coordinates[2]};
 					/*Calculate lbpHistogram and compare to modelHistogram*/
 					lbpHist = lbp.histc(lbp.reshape(lbp3D,coordinates[0]-lbpBlockRadius,coordinates[0]+lbpBlockRadius,coordinates[1]-lbpBlockRadius,coordinates[1]+lbpBlockRadius,coordinates[2],coordinates[2]));
-                  pixelQueue.add(new NextPixel(lbp.checkClose(lbpHist,lbpModelHist),queueCoordinates));
+                  pixelQueue.add(new NextPixel(1.0-lbp.checkClose(lbpHist,lbpModelHist),queueCoordinates));
                }
             }
         }
@@ -252,7 +255,7 @@ public class RegionGrow3D extends RegionGrow{
 	}
 	
 	private int[][] find(byte[][][] matrix){
-		int[][] temp = new int[matrix.length*matrix[0].length][3];
+		int[][] temp = new int[matrix.length*matrix[0].length*matrix[0][0].length][3];
 		int found = 0;
 		for (int i = 0; i< matrix.length;++i){
 			for (int j = 0; j< matrix[i].length;++j){
