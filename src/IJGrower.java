@@ -86,10 +86,10 @@ public class IJGrower implements PlugIn {
 			segmentationMask = r3d.segmentationMask;
 		}else{			/*2D region grow*/
 		
-			segmentationMask = horizontalPlaneSegmentation(image3D,segmentationMask,3.0);
+			segmentationMask = horizontalPlaneSegmentation(image3D,segmentationMask,3.0,0,1);
 			/*Grow up down too*/
 			if(growUpDown){
-				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,4.5);
+				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,4.5,0,0);
 			/*Grow once more in sagittal direction*/
 				if (secondGrow){
 					
@@ -130,7 +130,7 @@ public class IJGrower implements PlugIn {
 	
 	/*Frontal plane analysis*/
 	
-	byte[][][] frontalPlaneSegmentation(double[][][] image3D, byte[][][] segmentationMask,double stdMultiplier){
+	byte[][][] frontalPlaneSegmentation(double[][][] image3D, byte[][][] segmentationMask,double stdMultiplier,int preErodeReps, int postErodeReps){
 		int width = image3D.length;
 		int height = image3D[0].length;
 		int depth = image3D[0][0].length;
@@ -163,7 +163,7 @@ public class IJGrower implements PlugIn {
 			/*Run the region growing*/
 			if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
 				RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-				Thread newThread = new MultiThreader(rg,d,0);
+				Thread newThread = new MultiThreader(rg,d,preErodeReps,postErodeReps);
 				newThread.start();
 				threads.add(newThread);
 			}
@@ -185,7 +185,7 @@ public class IJGrower implements PlugIn {
 	}
 	
 	/*Horizontal plane analysis*/
-	byte[][][] horizontalPlaneSegmentation(double[][][] image3D, byte[][][] segmentationMask,double stdMultiplier){
+	byte[][][] horizontalPlaneSegmentation(double[][][] image3D, byte[][][] segmentationMask,double stdMultiplier,int preErodeReps, int postErodeReps){
 		int width = image3D.length;
 		int height = image3D[0].length;
 		int depth = image3D[0][0].length;		
@@ -222,7 +222,7 @@ public class IJGrower implements PlugIn {
 			if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
 				/*Try multithreading here*/
 				RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-				Thread newThread = new MultiThreader(rg,r,0);
+				Thread newThread = new MultiThreader(rg,r,preErodeReps,postErodeReps);
 				newThread.start();
 				threads.add(newThread);
 			}
@@ -244,7 +244,7 @@ public class IJGrower implements PlugIn {
 	}
 	
 	/*Sagittal plane analysis*/
-	byte[][][] sagittalPlaneSegmentation(double[][][] image3D, byte[][][] segmentationMask){
+	byte[][][] sagittalPlaneSegmentation(double[][][] image3D, byte[][][] segmentationMask,double stdMultiplier,int preErodeReps, int postErodeReps){
 		int width = image3D.length;
 		int height = image3D[0].length;
 		int depth = image3D[0][0].length;		
@@ -258,7 +258,7 @@ public class IJGrower implements PlugIn {
 		/*Get diffLimit*/
 		if (stdGrow){
 			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
-			diffLimit = 3.0*stDev;
+			diffLimit = stdMultiplier*stDev;
 		}
 		IJ.log("Mean "+meanAndArea[0]+" DiffLimit "+diffLimit);
 		/*Go through all of the slices*/
@@ -281,7 +281,7 @@ public class IJGrower implements PlugIn {
 			if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
 				/*Try multithreading here*/
 				RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-				Thread newThread = new MultiThreader(rg,c,0);
+				Thread newThread = new MultiThreader(rg,c,preErodeReps,postErodeReps);
 				newThread.start();
 				threads.add(newThread);
 			}
@@ -306,21 +306,21 @@ public class IJGrower implements PlugIn {
 	public class MultiThreader extends Thread{
 		public RegionGrow2D r2d;
 		public int r;
-		private int erodeReps;
+		private int postErodeReps;
 		private int preErodeReps;
 		private boolean preErode;
 		/*Costructor*/
-		public MultiThreader(RegionGrow2D r2d, int r,int erodeReps){
+		public MultiThreader(RegionGrow2D r2d, int r,int postErodeReps){
 			this.r2d = r2d;
 			this.r = r;
-			this.erodeReps = erodeReps;
+			this.postErodeReps = postErodeReps;
 			preErode = false;
 		}
 		/*Costructor with pre-erode*/
-		public MultiThreader(RegionGrow2D r2d, int r,int erodeReps,int preErodeReps){
+		public MultiThreader(RegionGrow2D r2d, int r,int preErodeReps,int postErodeReps){
 			this.r2d = r2d;
 			this.r = r;
-			this.erodeReps = erodeReps;
+			this.postErodeReps = postErodeReps;
 			this.preErodeReps = preErodeReps;
 			preErode = true;
 		}
@@ -334,7 +334,7 @@ public class IJGrower implements PlugIn {
 			if (r2d.maskHasPixels()){
 				r2d.growRegion();
 				r2d.fillVoids(); //Fill void
-				for (int i = 0; i<erodeReps;++i){
+				for (int i = 0; i<postErodeReps;++i){
 					r2d.erodeMask();	/*Try to remove spurs...*/
 				}
 			}
