@@ -79,6 +79,7 @@ public class IJGrowerLBP implements PlugIn {
 					lbp3D[c][r][d] = (double) lbpImage[c][r];
 				}
 			}
+			IJ.log("Slice "+(d+1)+"/"+depth+" done");
         }
 		IJ.log("Memory stacks done");
 		
@@ -93,14 +94,11 @@ public class IJGrowerLBP implements PlugIn {
 			}
         }
 		/*Get LBP model histogram*/
-		double[] lbpHist = lbp.histc(lbp.reshape(lbp3D,seedPoints[0],seedPoints[1],seedPoints[2],seedPoints[3],seedPoints[4],seedPoints[5]));
-		for (int i = 0;i<lbpHist.length;++i){
-			IJ.log("Bin "+i+" "+lbpHist[i]);
-		}
+		double[] lbpModelHist = lbp.histc(lbp.reshape(lbp3D,seedPoints[0],seedPoints[1],seedPoints[2],seedPoints[3],seedPoints[4],seedPoints[5]));
 		/*Grow stack*/
-		/*
 		if (threeD){	//3D region grow
-			RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, diffLimit);
+			//RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, diffLimit);
+			RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.7,lbp3D,lbp,3,lbpModelHist);
 			segmentationMask = r3d.segmentationMask;
 		}else{			//2D region grow
 		
@@ -117,7 +115,7 @@ public class IJGrowerLBP implements PlugIn {
 			
 		}
 		
-		*/
+
 
 		/*Dump out the results*/
 		/*
@@ -129,7 +127,7 @@ public class IJGrowerLBP implements PlugIn {
 		
 		
 		//Visualize result
-		/*
+		
 		Calibration calibration = imp.getCalibration();
 		double[] vRange = {imp.getDisplayRangeMin(),imp.getDisplayRangeMax()};
 		//Visualize segmentation on the original image
@@ -144,7 +142,7 @@ public class IJGrowerLBP implements PlugIn {
 		
         ImagePlus resultStack = createOutputStack(segmentationMask, calibration);
 		resultStack.show();
-		*/
+		
     }
 	
 	/*Frontal plane analysis*/

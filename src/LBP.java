@@ -18,14 +18,14 @@ public class LBP{
 	private double[][] neighbourhood;
 	private int radius;
 	private int samples;
-	private double[] cutpoints;
+	public double[] cutPoints;
 	
 	public LBP(int samples, int radius){
 		this.samples	= samples;
 		this.radius		= radius;
-		cutpoints = new double[samples+2];
+		cutPoints = new double[samples+2];
 		for (int i = 0; i<samples+2;++i){
-			cutpoints[i] = i;
+			cutPoints[i] = i;
 		}
 		mapping = getMapping(samples);
 		System.out.println("Mapping length "+mapping.length+" samples "+samples);
