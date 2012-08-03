@@ -18,10 +18,15 @@ public class LBP{
 	private double[][] neighbourhood;
 	private int radius;
 	private int samples;
+	private double[] cutpoints;
 	
 	public LBP(int samples, int radius){
 		this.samples	= samples;
 		this.radius		= radius;
+		cutpoints = new double[samples+2];
+		for (int i = 0; i<samples+2;++i){
+			cutpoints[i] = i;
+		}
 		mapping = getMapping(samples);
 		System.out.println("Mapping length "+mapping.length+" samples "+samples);
 		neighbourhood = getCircularNeighbourhood(radius,samples);
@@ -139,6 +144,98 @@ public class LBP{
 		else if (x < 2.0) 
 			z = -a*x*x*x + 5.0*a*x*x - 8.0*a*x + 4.0*a;
 		return z;
+	}
+	
+	/*LBP histogram functions*/
+	public double[] histc(double[] values,double[] cutPoints){
+		double[] histogram = new double[cutPoints.length];
+		for (int i = 0;i<values.length;++i){
+			int j = 0;
+			
+			//while (j < cutPoints.length-1 && values[i] <cutPoints[j+1]){++j;}
+			while (j < cutPoints.length-2 && values[i] >= cutPoints[j+1]){
+				++j;
+			}
+			if (values[i] == cutPoints[cutPoints.length-1]){
+				j = j+1;
+			}
+			//System.out.println("ind "+i+ " val "+values[i]+" bin "+j+" from "+cutPoints[j]);
+			histogram[j] += 1;
+		}
+		
+		return histogram;
+	}
+	
+	public double[] histc(double[] values){
+		double[] histogram = new double[cutPoints.length];
+		for (int i = 0;i<values.length;++i){
+			int j = 0;
+			
+			//while (j < cutPoints.length-1 && values[i] <cutPoints[j+1]){++j;}
+			while (j < cutPoints.length-2 && values[i] >= cutPoints[j+1]){
+				++j;
+			}
+			if (values[i] == cutPoints[cutPoints.length-1]){
+				j = j+1;
+			}
+			//System.out.println("ind "+i+ " val "+values[i]+" bin "+j+" from "+cutPoints[j]);
+			histogram[j] += 1;
+		}
+		histogram = arrDiv(histogram,sum(histogram));
+		return histogram;
+	}
+	
+	/*reshape 2D Matrix*/
+	public double[] reshape(double[][] dataIn,int xb,int xe,int yb,int ye){
+		double[] array = new double[(xe-xb+1)*(ye-yb+1)];
+		int ind = 0;
+		for (int y = yb;y<=ye;++y){
+			for (int x = xb;x<=xe;++x){
+				array[ind] = dataIn[x][y];
+				++ind;
+			}
+		}
+		return array;
+	}
+	
+	/*reshape 3D Matrix*/
+	public double[] reshape(double[][][] dataIn,int xb,int xe,int yb,int ye, int db, int de){
+		double[] array = new double[(xe-xb+1)*(ye-yb+1)*(de-db+1)];
+		int ind = 0;
+		for (int d = db;d<=de;++d){
+			for (int y = yb;y<=ye;++y){
+				for (int x = xb;x<=xe;++x){
+					array[ind] = dataIn[x][y][d];
+					++ind;
+				}
+			}
+		}
+		return array;
+	}
+	
+	private double sum(double[] arrayIn){
+		double temp = 0;
+		for (int i = 0;i< arrayIn.length;++i){
+			temp+=arrayIn[i];
+		}
+		return temp;
+	}
+	private double[] arrDiv(double[] arrayIn,double divisor){
+		for (int i = 0;i< arrayIn.length;++i){
+			arrayIn[i]/=divisor;
+		}
+		return arrayIn;
+	}
+	
+	public double checkClose(double[] sampleHist,double[] modelHist){
+        double closeness = 0;
+        for (int h = 0;h<sampleHist.length;++h){
+            closeness += min(sampleHist[h],modelHist[h]);
+        }
+		return closeness;
+    }
+	private double min(double a, double b){
+		return (a < b) ? a : b;
 	}
 	
 	public static void main(String[] ar){
