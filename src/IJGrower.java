@@ -71,181 +71,27 @@ public class IJGrower implements PlugIn {
         }
 		
 		/*Construct the segmented mask*/
-		byte[][][] mask3D = new byte[width][height][depth];	/*Initialized to zero by Java as default*/
-		byte[][][] segmentationMask;
+		byte[][][] segmentationMask = new byte[width][height][depth];	/*Initialized to zero by Java as default*/
 		/*Create Seed volume, experimentally chosen....*/
 		for (int d = seedPoints[4]; d < seedPoints[5]; ++d) {
 			for (int r = seedPoints[2];r<seedPoints[3];++r){
 				for (int c = seedPoints[0];c<seedPoints[1];++c){
-					mask3D[c][r][d] = (byte) 1;
+					segmentationMask[c][r][d] = (byte) 1;
 				}
 			}
         }
 		/*Grow stack*/
 		if (threeD){	/*3D region grow*/
-			RegionGrow3D r3d = new RegionGrow3D(image3D, mask3D, diffLimit);
+			RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, diffLimit);
 			segmentationMask = r3d.segmentationMask;
 		}else{			/*2D region grow*/
-			List threads = new ArrayList();
-			segmentationMask = new byte[width][height][depth];	/*Create the segmentation mask*/
-			/*Go through all of the slices*/
-			double[][] sliceData;
-			byte[][] sliceMask;
-			double[] meanAndArea;
-			double stDev;
-			meanAndArea = RegionGrow.getCurrentMeanAndArea(mask3D, image3D);
-			if (stdGrow){
-				stDev = RegionGrow.getStdev(mask3D, image3D,meanAndArea[0]);
-				diffLimit = 3.0*stDev;
-			}
-			IJ.log("Mean "+meanAndArea[0]+" DiffLimit "+diffLimit);
-			boolean maskHasPixels;
-			for (int d = 0; d < depth; ++d) {
-				//IJ.log("First of three region grows slice "+d);
-				/*Get the slice*/
-				sliceData = new double[width][height];
-				sliceMask = new byte[width][height];
-				maskHasPixels =false;
-				for (int r = 0;r<height;++r){
-					for (int c = 0;c<width;++c){
-						sliceData[c][r] = image3D[c][r][d];
-						sliceMask[c][r] = mask3D[c][r][d];
-						if (sliceMask[c][r] ==1){
-							maskHasPixels = true;
-						}
-					}
-				}
-				/*Run the region growing*/
-				if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
-				
-					RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-					Thread newThread = new MultiThreader(rg,d,0);
-					newThread.start();
-					threads.add(newThread);
-					//IJ.log("Fired up thread "+threads.size()+" d "+d);
-				
-				}
-			}
-			/*Wait for the threads to finish...*/
-			for (int t = 0; t<threads.size();++t){
-				try{
-					((Thread) threads.get(t)).join();
-				}catch(Exception er){}
-				/*Copy the mask result to mask3D*/
-				int d = ((MultiThreader) threads.get(t)).r;
-				for (int r = 0;r<height;++r){
-					for (int c = 0;c<width;++c){
-						segmentationMask[c][r][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][r];
-					}
-				}
-				
-				//IJ.log("Joined thread "+t);
-				
-			}
-				
+		
+			segmentationMask = horizontalPlaneSegmentation(image3D,segmentationMask,3.0);
 			/*Grow up down too*/
 			if(growUpDown){
-				/*update mean and area*/
-				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-				if (stdGrow){
-					stDev = RegionGrow.getStdev(mask3D, image3D,meanAndArea[0]);
-					diffLimit = 3.0*stDev;
-				}
-				IJ.log("Mean "+meanAndArea[0]+" DiffLimit "+diffLimit);
-				//IJ.log("Into UD");
-				/*Go through all of the slices*/
-				threads.clear();
-				for (int r = 0;r<height;++r){
-					//IJ.log("Second region grow slice "+r);
-					sliceData = new double[width][depth];
-					sliceMask = new byte[width][depth];
-					/*Get the slice*/
-					maskHasPixels = false;
-					for (int d = 0; d < depth; ++d) {
-						for (int c = 0;c<width;++c){
-							sliceData[c][d] = image3D[c][r][d];
-							sliceMask[c][d] = segmentationMask[c][r][d];
-							if (sliceMask[c][d] ==1){
-								maskHasPixels = true;
-							}
-						}
-					}
-					/*Run the region growing*/
-					if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
-						/*Try threading here*/
-						RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-						Thread newThread = new MultiThreader(rg,r,1);
-						newThread.start();
-						threads.add(newThread);
-						//IJ.log("Fired up thread "+threads.size()+" r "+r);
-					}
-				}
-				
-				/*Wait for the threads to finish...*/
-				for (int t = 0; t<threads.size();++t){
-					try{
-						((Thread) threads.get(t)).join();
-					}catch(Exception er){}
-					/*Copy the mask result to mask3D*/
-					int r = ((MultiThreader) threads.get(t)).r;
-					for (int d = 0; d < depth; ++d) {
-						for (int c = 0;c<width;++c){
-							segmentationMask[c][r][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][d];
-						}
-					}
-					
-					//IJ.log("Joined thread "+t);
-					
-				}
-
-				/*Grow once more in sagittal direction*/
+				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,4.5);
+			/*Grow once more in sagittal direction*/
 				if (secondGrow){
-					meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-					if (stdGrow){
-						stDev = RegionGrow.getStdev(mask3D, image3D,meanAndArea[0]);
-						diffLimit = 3.0*stDev;
-					}
-					IJ.log("Mean "+meanAndArea[0]+" DiffLimit "+diffLimit);
-					threads.clear();
-					for (int d = 0; d < depth; ++d) {
-						//IJ.log("Last region grow slice "+d);
-						//Get the slice
-						sliceData = new double[width][height];
-						sliceMask = new byte[width][height];
-						maskHasPixels = false;
-						for (int r = 0;r<height;++r){
-							for (int c = 0;c<width;++c){
-								sliceData[c][r] = image3D[c][r][d];
-								sliceMask[c][r] = segmentationMask[c][r][d];
-								if (sliceMask[c][r] ==1){
-									maskHasPixels = true;
-								}
-							}
-						}
-						//Run the region growing
-						if (maskHasPixels){ //Do the remaining steps only if a pixel existed within the slice...
-						
-							RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-							Thread newThread = new MultiThreader(rg,d,0,10);
-							newThread.start();
-							threads.add(newThread);
-							//IJ.log("Fired up thread "+threads.size()+" d "+d);
-						}
-					}
-					/*Wait for the threads to finish...*/
-					for (int t = 0; t<threads.size();++t){
-						try{
-							((Thread) threads.get(t)).join();
-						}catch(Exception er){}
-						/*Copy the mask result to mask3D*/
-						int d = ((MultiThreader) threads.get(t)).r;
-						for (int r = 0;r<height;++r){
-							for (int c = 0;c<width;++c){
-								segmentationMask[c][r][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][r];
-							}
-						}
-						//IJ.log("Joined thread "+t);
-					}
 					
 				}
 				
@@ -276,12 +122,187 @@ public class IJGrower implements PlugIn {
 		horizontalStack.setDisplayRange(vRange[0],vRange[1]);
 		horizontalStack.show();
 		/*Visualize mask*/
+		
         ImagePlus resultStack = createOutputStack(segmentationMask, calibration);
 		resultStack.show();
+		
     }
 	
+	/*Frontal plane analysis*/
 	
-	/*Try multithreading*/
+	byte[][][] frontalPlaneSegmentation(double[][][] image3D, byte[][][] segmentationMask,double stdMultiplier){
+		int width = image3D.length;
+		int height = image3D[0].length;
+		int depth = image3D[0][0].length;
+		double[] meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+		double[][] sliceData;
+		byte[][] sliceMask;
+		double stDev;
+		boolean maskHasPixels;
+		List threads = new ArrayList();
+		/*Get diffLimit*/
+		if (stdGrow){
+			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
+			diffLimit = stdMultiplier*stDev;
+		}
+		IJ.log("Mean "+meanAndArea[0]+" DiffLimit "+diffLimit);
+		for (int d = 0; d < depth; ++d) {
+			/*Get the slice*/
+			sliceData = new double[width][height];
+			sliceMask = new byte[width][height];
+			maskHasPixels =false;
+			for (int r = 0;r<height;++r){
+				for (int c = 0;c<width;++c){
+					sliceData[c][r] = image3D[c][r][d];
+					sliceMask[c][r] = segmentationMask[c][r][d];
+					if (sliceMask[c][r] ==1){
+						maskHasPixels = true;
+					}
+				}
+			}
+			/*Run the region growing*/
+			if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
+				RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
+				Thread newThread = new MultiThreader(rg,d,0);
+				newThread.start();
+				threads.add(newThread);
+			}
+		}
+		/*Wait for the threads to finish...*/
+		for (int t = 0; t<threads.size();++t){
+			try{
+				((Thread) threads.get(t)).join();
+			}catch(Exception er){}
+			/*Copy the mask result to mask3D*/
+			int d = ((MultiThreader) threads.get(t)).r;
+			for (int r = 0;r<height;++r){
+				for (int c = 0;c<width;++c){
+					segmentationMask[c][r][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][r];
+				}
+			}
+		}
+		return segmentationMask;
+	}
+	
+	/*Horizontal plane analysis*/
+	byte[][][] horizontalPlaneSegmentation(double[][][] image3D, byte[][][] segmentationMask,double stdMultiplier){
+		int width = image3D.length;
+		int height = image3D[0].length;
+		int depth = image3D[0][0].length;		
+		double[] meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+		double[][] sliceData;
+		byte[][] sliceMask;
+		double stDev;
+		boolean maskHasPixels;
+		List threads = new ArrayList();
+		meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+		/*Get diffLimit*/
+		if (stdGrow){
+			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
+			diffLimit = stdMultiplier*stDev;
+		}
+		IJ.log("Mean "+meanAndArea[0]+" DiffLimit "+diffLimit);
+		/*Go through all of the slices*/
+		threads.clear();
+		for (int r = 0;r<height;++r){
+			sliceData = new double[width][depth];
+			sliceMask = new byte[width][depth];
+			/*Get the slice*/
+			maskHasPixels = false;
+			for (int d = 0; d < depth; ++d) {
+				for (int c = 0;c<width;++c){
+					sliceData[c][d] = image3D[c][r][d];
+					sliceMask[c][d] = segmentationMask[c][r][d];
+					if (sliceMask[c][d] ==1){
+						maskHasPixels = true;
+					}
+				}
+			}
+			/*Run the region growing*/
+			if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
+				/*Try multithreading here*/
+				RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
+				Thread newThread = new MultiThreader(rg,r,0);
+				newThread.start();
+				threads.add(newThread);
+			}
+		}
+		/*Wait for the threads to finish...*/
+		for (int t = 0; t<threads.size();++t){
+			try{
+				((Thread) threads.get(t)).join();
+			}catch(Exception er){}
+			/*Copy the mask result to mask3D*/
+			int r = ((MultiThreader) threads.get(t)).r;
+			for (int d = 0; d < depth; ++d) {
+				for (int c = 0;c<width;++c){
+					segmentationMask[c][r][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][d];
+				}
+			}
+		}
+		return segmentationMask;
+	}
+	
+	/*Sagittal plane analysis*/
+	byte[][][] sagittalPlaneSegmentation(double[][][] image3D, byte[][][] segmentationMask){
+		int width = image3D.length;
+		int height = image3D[0].length;
+		int depth = image3D[0][0].length;		
+		double[] meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+		double[][] sliceData;
+		byte[][] sliceMask;
+		double stDev;
+		boolean maskHasPixels;
+		List threads = new ArrayList();
+		meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+		/*Get diffLimit*/
+		if (stdGrow){
+			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
+			diffLimit = 3.0*stDev;
+		}
+		IJ.log("Mean "+meanAndArea[0]+" DiffLimit "+diffLimit);
+		/*Go through all of the slices*/
+		threads.clear();
+		for (int c = 0;c<width;++c){
+			sliceData = new double[height][depth];
+			sliceMask = new byte[height][depth];
+			/*Get the slice*/
+			maskHasPixels = false;
+			for (int d = 0; d < depth; ++d) {
+				for (int r = 0;r<height;++r){
+					sliceData[r][d] = image3D[c][r][d];
+					sliceMask[r][d] = segmentationMask[c][r][d];
+					if (sliceMask[r][d] ==1){
+						maskHasPixels = true;
+					}
+				}
+			}
+			/*Run the region growing*/
+			if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
+				/*Try multithreading here*/
+				RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
+				Thread newThread = new MultiThreader(rg,c,0);
+				newThread.start();
+				threads.add(newThread);
+			}
+		}
+		/*Wait for the threads to finish...*/
+		for (int t = 0; t<threads.size();++t){
+			try{
+				((Thread) threads.get(t)).join();
+			}catch(Exception er){}
+			/*Copy the mask result to mask3D*/
+			int c = ((MultiThreader) threads.get(t)).r;
+			for (int d = 0; d < depth; ++d) {
+				for (int r = 0;r<height;++r){
+					segmentationMask[c][r][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[r][d];
+				}
+			}
+		}
+		return segmentationMask;
+	}
+	
+	/*Multithreading*/
 	public class MultiThreader extends Thread{
 		public RegionGrow2D r2d;
 		public int r;
