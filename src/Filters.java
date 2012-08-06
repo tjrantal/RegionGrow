@@ -189,6 +189,7 @@ public class Filters{
 		int width = matrix1.length;
 		int height = matrix1[0].length;
 		/*calculate means*/
+		System.out.println("Calc means");
 		ms1 = mean(matrix1);
 		ms2 = mean(matrix2);
 		double mx;
@@ -197,21 +198,23 @@ public class Filters{
 		double summxSq;
 		double summySq;
 		double summxmySq;
+		System.out.println("XCorr");
 		for (int i =0;i<=width-matrix2.length;++i){
-			for (int j =0;j<=height-matrix2[i].length;++j){//ignore beginning and end of the signal...
+			for (int j =0;j<=height-matrix2[0].length;++j){//ignore beginning and end of the signal...
 				summxmy=0;
 				summxSq=0;
 				summySq=0;
 				for (int i2 = 0; i2< matrix2.length; ++i2){
 					for (int j2 = 0; j2< matrix2[i2].length; ++j2){
 						mx = matrix1[i+i2][j+j2]-ms1;
-						my = matrix2[i+i2][j+j2]-ms2;
+						my = matrix2[i2][j2]-ms2;
 						summxmy+=mx*my;
 						summxSq+=mx*mx;
 						summySq+=my*my;
 					}
 				}
 				xcor[i][j]=summxmy/Math.sqrt(summxSq*summySq);
+				System.out.println("I "+i+" J "+j+" XCORR "+xcor[i][j]);
 			}
 		}
 		return xcor;
@@ -244,7 +247,15 @@ public class Filters{
 							{1,1,1,1,1,1,1},
 							{1,1,1,1,1,1,1},
 							{1,1,1,1,1,1,1}};
+							
+		double[][] mask = {{0,0,0},
+							{0,1,0},
+							{0,0,0}};
 		printMatrix(data);
+		
+		double[][] xcorrResults = xcorr(data,mask);
+		System.out.println("XCORR");
+		printMatrix(xcorrResults);
 		/*
 		double[][] interpolated = new double[14][14];
 		for (int i = 0; i< 14;++i){
@@ -255,9 +266,11 @@ public class Filters{
 		System.out.println("InterpolatedImage");
 		printMatrix(interpolated);
 		*/
+		/*
 		double[][] variance = getVarianceImage(data,1);
 		System.out.println("VarianceImage");
 		printMatrix(variance);
+		*/
 	}
 	
 	public static void printMatrix(double[][] matrix){
