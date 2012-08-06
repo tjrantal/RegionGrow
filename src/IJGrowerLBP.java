@@ -95,7 +95,7 @@ public class IJGrowerLBP implements PlugIn {
         }
 		
 		/*Grow seed mask...*/
-		int lbpRadius = 9;
+		int lbpRadius = 5;
 		segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,4.5,0,2*lbpRadius);
 		/*Get LBP model histogram*/
 		
@@ -106,7 +106,7 @@ public class IJGrowerLBP implements PlugIn {
 		double[] meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 		double stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
 		double greySTD = 2.0*stDev;
-		RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.1,lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
+		RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.15,lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
 		segmentationMask = r3d.segmentationMask;
 		r3d = null;
 		System.gc();

@@ -178,15 +178,15 @@ public class RegionGrow2D extends RegionGrow{
 				if (segmentationMask[i][j] == 1){
 					if (i>0 && segmentationMask[i-1][j]==0 ||
 						j>0 && segmentationMask[i][j-1]==0 ||
-						i+1<rowCount && segmentationMask[i+1][j]==0 ||
-						j+1<columnCount && segmentationMask[i][j+1]==0)
+						i+1<columnCount && segmentationMask[i+1][j]==0 ||
+						j+1<rowCount && segmentationMask[i][j+1]==0)
 						{segmentationMask[i][j] = -1;}	//Erode the pixel if any of the neighborhood pixels is background
 				}
 			}
 		}
 		
-		for (int i=0; i<rowCount; i++){
-			for (int j=0; j<columnCount; j++){
+		for (int i=0; i<columnCount; i++){
+			for (int j=0; j<rowCount; j++){
 				if (segmentationMask[i][j]==-1){
 					segmentationMask[i][j] = 0;
 				}

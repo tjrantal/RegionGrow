@@ -86,9 +86,10 @@ public class IJGrower implements PlugIn {
 			segmentationMask = r3d.segmentationMask;
 		}else{			/*2D region grow*/
 		
-			segmentationMask = horizontalPlaneSegmentation(image3D,segmentationMask,3.0,0,1);
+			segmentationMask = horizontalPlaneSegmentation(image3D,segmentationMask,2.0,0,1);
 			/*Grow up down too*/
 			if(growUpDown){
+				IJ.log("UpDown");
 				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,4.5,0,0);
 			/*Grow once more in sagittal direction*/
 				if (secondGrow){
@@ -111,18 +112,21 @@ public class IJGrower implements PlugIn {
 		
 		
 		/*Visualize result*/
+		
 		Calibration calibration = imp.getCalibration();
+		
+		/*
 		double[] vRange = {imp.getDisplayRangeMin(),imp.getDisplayRangeMax()};
-		/*Visualize segmentation on the original image*/
+		//Visualize segmentation on the original image
 		ImagePlus visualizationStack = createVisualizationStack(segmentationMask,image3D, calibration);
 		visualizationStack.setDisplayRange(vRange[0],vRange[1]);
 		visualizationStack.show();
-		/*Visualize segmentation on horizontal plane*/
+		//Visualize segmentation on horizontal plane
 		ImagePlus horizontalStack = createHorizontalVisualizationStack(segmentationMask,image3D, calibration);
 		horizontalStack.setDisplayRange(vRange[0],vRange[1]);
 		horizontalStack.show();
-		/*Visualize mask*/
-		
+		*/
+		//Visualize mask
         ImagePlus resultStack = createOutputStack(segmentationMask, calibration);
 		resultStack.show();
 		
@@ -150,6 +154,7 @@ public class IJGrower implements PlugIn {
 			/*Get the slice*/
 			sliceData = new double[width][height];
 			sliceMask = new byte[width][height];
+			IJ.log("Slice "+d);
 			maskHasPixels =false;
 			for (int r = 0;r<height;++r){
 				for (int c = 0;c<width;++c){
@@ -161,11 +166,13 @@ public class IJGrower implements PlugIn {
 				}
 			}
 			/*Run the region growing*/
+			IJ.log("Slice "+d+" hasPixels "+maskHasPixels);
 			if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
 				RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
 				Thread newThread = new MultiThreader(rg,d,preErodeReps,postErodeReps);
 				newThread.start();
 				threads.add(newThread);
+				IJ.log("Fired up thread "+threads.size());
 			}
 		}
 		/*Wait for the threads to finish...*/
@@ -180,6 +187,7 @@ public class IJGrower implements PlugIn {
 					segmentationMask[c][r][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][r];
 				}
 			}
+			IJ.log("Joined thread "+t);
 		}
 		return segmentationMask;
 	}
