@@ -189,7 +189,6 @@ public class Filters{
 		int width = matrix1.length;
 		int height = matrix1[0].length;
 		/*calculate means*/
-		System.out.println("Calc means");
 		ms1 = mean(matrix1);
 		ms2 = mean(matrix2);
 		double mx;
@@ -198,7 +197,6 @@ public class Filters{
 		double summxSq;
 		double summySq;
 		double summxmySq;
-		System.out.println("XCorr");
 		for (int i =0;i<=width-matrix2.length;++i){
 			for (int j =0;j<=height-matrix2[0].length;++j){//ignore beginning and end of the signal...
 				summxmy=0;
@@ -214,12 +212,10 @@ public class Filters{
 					}
 				}
 				xcor[i][j]=summxmy/Math.sqrt(summxSq*summySq);
-				System.out.println("I "+i+" J "+j+" XCORR "+xcor[i][j]);
 			}
 		}
 		return xcor;
 	}
-	
 	
 	public static final double cubic(double x) {
 		final double a = 0.5; // Catmull-Rom interpolation
