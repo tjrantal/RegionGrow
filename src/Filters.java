@@ -233,7 +233,7 @@ public class Filters{
 						summySq+=my*my;
 					}
 				}
-				xcor[i][j]=summxmy/Math.sqrt(summxSq*summySq);
+				xcor[i][j]=summxmy/((Math.sqrt(summxSq))*(Math.sqrt(summySq)));
 			}
 		}
 		return xcor;
@@ -259,7 +259,6 @@ public class Filters{
 		double summxSq;
 		double summySq;
 		double summxmySq;
-		//System.out.println("XCorr");
 		for (int i =0;i<=width-matrix2.length;++i){
 			for (int j =0;j<=height-matrix2[0].length;++j){//ignore beginning and end of the signal...
 				for (int k =0;k<=depth-matrix2[0][0].length;++k){//ignore beginning and end of the signal...
@@ -277,8 +276,7 @@ public class Filters{
 							}
 						}
 					}
-					xcor[i][j][k]=summxmy/Math.sqrt(summxSq*summySq);
-					//System.out.println("I "+i+" J "+j+" XCORR "+xcor[i][j]);
+					xcor[i][j][k]=summxmy/((Math.sqrt(summxSq))*(Math.sqrt(summySq)));
 				}
 			}
 		}
@@ -303,7 +301,8 @@ public class Filters{
 							{2,3,4,5},
 							{3,4,5,6}};
 							*/
-							
+		
+		/*	//2D xcorr
 		double[][] data = {{1,1,1,1,1,1,1},
 							{1,1,1,1,1,1,1},
 							{1,1,1,1,1,1,1},
@@ -318,7 +317,62 @@ public class Filters{
 		printMatrix(data);
 		
 		double[][] xcorrResults = xcorr(data,mask);
+		*/
+		//3D xcorr test
+				double[][][] data = {{{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1}},
+							{{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1}},
+							{{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,2,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1}},
+							{{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1}},
+							{{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1},
+							{1,1,1,1,1,1,1}}};
+							
+							double[][][] mask = {
+							{{0,0,0},
+							{0,0,0},
+							{0,0,0}},
+							{{0,0,0},
+							{0,1,0},
+							{0,0,0}},
+							{{0,0,0},
+							{0,0,0},
+							{0,0,0}}};
+		
+		
+		System.out.println("data");
+		printMatrix(data);
+		System.out.println("mask");
+		printMatrix(mask);
 		System.out.println("XCORR");
+		double[][][] xcorrResults=xcorr(data,mask);
 		printMatrix(xcorrResults);
 		/*
 		double[][] interpolated = new double[14][14];
@@ -338,7 +392,7 @@ public class Filters{
 	}
 	
 	public static void printMatrix(double[][] matrix){
-		DecimalFormat f = new DecimalFormat("0.#");
+		DecimalFormat f = new DecimalFormat("0.##");
 		for (int x = 0; x< matrix.length;++x){
 			for (int y = 0; y<matrix[x].length;++y){
 				System.out.print(f.format(matrix[x][y])+"\t");
@@ -346,5 +400,17 @@ public class Filters{
 			System.out.println();
 		}
 	}
-	
+
+	public static void printMatrix(double[][][] matrix){
+		DecimalFormat f = new DecimalFormat("0.##");
+		for (int d = 0; d< matrix[0][0].length;++d){
+			System.out.println("D = "+d);
+			for (int x = 0; x< matrix.length;++x){
+				for (int y = 0; y<matrix[x].length;++y){
+					System.out.print(f.format(matrix[x][y][d])+"\t");
+				}
+				System.out.println();
+			}
+		}
+	}	
 }
