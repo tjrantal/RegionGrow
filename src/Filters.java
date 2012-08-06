@@ -108,6 +108,7 @@ public class Filters{
 	public static int max(int a, int b){return a > b ? a:b;}
 	public static double min(double a, double b){return a < b ? a:b;}
 	public static double max(double a, double b){return a > b ? a:b;}
+	/*1D mean*/
 	public static double mean(int[] a){
 		double returnVal = 0;
 		for (int i = 0;i<a.length;++i){
@@ -122,7 +123,27 @@ public class Filters{
 		}
 		return returnVal/=(double) a.length;	
 	}
-	/*Min max and mean defined*/
+	/*2D mean*/
+	public static double mean(int[][] a){
+		double returnVal = 0;
+		for (int i = 0;i<a.length;++i){
+			for (int j = 0;j<a[i].length;++j){
+				returnVal+= (double) a[i][j];
+			}
+		}
+		return returnVal/=((double) (a.length*a[0].length));	
+	}
+	public static double mean(double[][] a){
+		double returnVal = 0;
+		for (int i = 0;i<a.length;++i){
+			for (int j = 0;j<a[i].length;++j){
+				returnVal+= a[i][j];
+			}
+		}
+		return returnVal/=((double) (a.length*a[0].length));	
+	}
+
+	
 	
 	/*Cross-correlation analysis, equations taken from http://paulbourke.net/miscellaneous/correlate/*/
 	/*Calculate 1D cross-correlation for two arrays with same length. No wrapping, i.e. correlation length is limited*/
@@ -132,10 +153,6 @@ public class Filters{
 		double ms2 =0;
 		int length = min(series1.length,series2.length);
 		/*calculate means*/
-		for (int i = 0; i<length;i++){
-			ms1+=series1[i];
-			ms2+=series2[i];
-		}
 		ms1 = mean(series1);
 		ms2 = mean(series2);
 		double mx;
@@ -156,6 +173,46 @@ public class Filters{
 				summySq+=my*my;
 			}
 			xcor[i+maxDelay]=summxmy/Math.sqrt(summxSq*summySq);
+		}
+		return xcor;
+	}
+	
+	
+	
+	/*
+		Calculate 2D cross-correlation for two 2D arrays. matrix2 needs to be smaller in both dimensions. Not calculated for non-overlapping positions.	
+	*/
+	public static double[][] xcorr(double[][] matrix1,double[][] matrix2){
+		double[][] xcor = new double[matrix1.length-matrix2.length+1][matrix1[0].length-matrix2[0].length+1];
+		double ms1 =0;
+		double ms2 =0;
+		int width = matrix1.length;
+		int height = matrix1[0].length;
+		/*calculate means*/
+		ms1 = mean(matrix1);
+		ms2 = mean(matrix2);
+		double mx;
+		double my;
+		double summxmy;
+		double summxSq;
+		double summySq;
+		double summxmySq;
+		for (int i =0;i<=width-matrix2.length;++i){
+			for (int j =0;j<=height-matrix2[i].length;++j){//ignore beginning and end of the signal...
+				summxmy=0;
+				summxSq=0;
+				summySq=0;
+				for (int i2 = 0; i2< matrix2.length; ++i2){
+					for (int j2 = 0; j2< matrix2[i2].length; ++j2){
+						mx = matrix1[i+i2][j+j2]-ms1;
+						my = matrix2[i+i2][j+j2]-ms2;
+						summxmy+=mx*my;
+						summxSq+=mx*mx;
+						summySq+=my*my;
+					}
+				}
+				xcor[i][j]=summxmy/Math.sqrt(summxSq*summySq);
+			}
 		}
 		return xcor;
 	}
