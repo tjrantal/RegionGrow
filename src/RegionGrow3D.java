@@ -108,6 +108,11 @@ public class RegionGrow3D extends RegionGrow{
 		int[] coordinates;
 		while (pixelQueue.size() > 0){ //Go through all cells in queue
 			nextPixel  =  pixelQueue.poll();	/*Get the pixel with the lowest cost and remove it from the queue*/
+			/*In case the pixel has been visited subsequent to having been added*/
+			while (visited[nextPixel.coordinates[0]][nextPixel.coordinates[1]][nextPixel.coordinates[2]] == 1 && pixelQueue.size() > 0){
+				nextPixel  = pixelQueue.poll();	/*Get the pixel with the lowest cost and remove it from the queue*/
+			}
+			
 			/*	Add 4-connected neighbourhood to the  queue, unless the
 			neighbourhood pixels have already been visited or are part of the
 			mask already		*/
@@ -203,6 +208,9 @@ public class RegionGrow3D extends RegionGrow{
 		int[] coordinates;
 		while (pixelQueue.size() > 0){ //Go through all cells in queue
 			nextPixel  = pixelQueue.poll();	/*Get the pixel with the lowest cost and remove it from the queue*/
+			while (visited[nextPixel.coordinates[0]][nextPixel.coordinates[1]][nextPixel.coordinates[2]] == 1 && pixelQueue.size() > 0){
+				nextPixel  = pixelQueue.poll();	/*Get the pixel with the lowest cost and remove it from the queue*/
+			}
 			/*	Add 4-connected neighbourhood to the  queue, unless the
 			neighbourhood pixels have already been visited or are part of the
 			mask already		*/

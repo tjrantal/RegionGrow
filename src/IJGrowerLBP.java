@@ -96,7 +96,7 @@ public class IJGrowerLBP implements PlugIn {
 		
 		/*Grow seed mask...*/
 		int lbpRadius = 5;
-		segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,4.5,0,2*lbpRadius);
+		segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,3.0,0,2*lbpRadius);
 		/*Get LBP model histogram*/
 		
 		double[] lbpModelHist = lbp.histc(lbp.reshape(lbp3D,segmentationMask));

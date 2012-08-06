@@ -187,7 +187,7 @@ public class IJGrower implements PlugIn {
 					segmentationMask[c][r][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][r];
 				}
 			}
-			IJ.log("Joined thread "+t);
+			IJ.log("Joined thread "+t+" of "+threads.size());
 		}
 		return segmentationMask;
 	}
