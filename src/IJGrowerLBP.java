@@ -61,26 +61,48 @@ public class IJGrowerLBP implements PlugIn {
 		/*Construct 3D image and 3D lbp memory stacks*/
         double [][][] image3D = new double[width][height][depth];
 		double[][][] lbp3D = new double[width][height][depth];	/*Initialized to zero by Java as default*/
-		double[][] tempData = new double[width][height];
+		double[][] tempData;
 		short[] temp;
-		LBP lbp = new LBP(16,2);
+		
 		IJ.log("Start creating memory stacks");
-        for (int d = 0; d < depth; ++d) {
+        /*Create threads for slices*/
+		List threads = new ArrayList();
+		for (int d = 0; d < depth; ++d) {
             temp = (short[]) imageArrayPointers[d];
+			tempData = new double[width][height];
 			for (int r = 0;r<height;++r){
 				for (int c = 0;c<width;++c){
 					image3D[c][r][d] = (double) temp[c+r*width];
 					tempData[c][r] = (double) temp[c+r*width];
 				}
 			}
-			byte[][] lbpImage = lbp.getLBP(tempData);
+			Thread newThread = new MultiThreaderLBP(tempData,d);
+			newThread.start();
+			threads.add(newThread);
+
+			IJ.log("Slice "+(d+1)+"/"+depth+" threading");
+        }
+		/*Catch the slice threads*/
+		for (int t = 0; t<threads.size();++t){
+			try{
+				((Thread) threads.get(t)).join();
+			}catch(Exception er){}
+			
+			/*Copy the mask result to mask3D*/
+			int d = ((MultiThreaderLBP) threads.get(t)).d;
+			IJ.log("Slice "+(d+1)+"/"+depth+" finished");
+			byte[][] lbpImage = ((MultiThreaderLBP) threads.get(t)).lbpImage;
 			for (int r = 0;r<height;++r){
 				for (int c = 0;c<width;++c){
-					lbp3D[c][r][d] = (double) lbpImage[c][r];
+					lbp3D[c][r][d]=(double) lbpImage[c][r];
 				}
 			}
-			IJ.log("Slice "+(d+1)+"/"+depth+" done");
-        }
+		}
+		
+		
+		
+		
+		
 		IJ.log("Memory stacks done");
 		
 		/*Construct the segmented mask*/
@@ -96,16 +118,17 @@ public class IJGrowerLBP implements PlugIn {
 		
 		/*Grow seed mask...*/
 		int lbpRadius = 5;
-		segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,3.0,0,2*lbpRadius);
+		segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,2.0,0,2*lbpRadius);
 		/*Get LBP model histogram*/
-		
-		double[] lbpModelHist = lbp.histc(lbp.reshape(lbp3D,segmentationMask));
+		LBP lbp = new LBP(16,2);
+		double[] lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
 		/*Grow stack*/
 		IJ.log("Starting 3D");
 			
 		double[] meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 		double stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
 		double greySTD = 2.0*stDev;
+		
 		RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.15,lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
 		segmentationMask = r3d.segmentationMask;
 		r3d = null;
@@ -321,46 +344,7 @@ public class IJGrowerLBP implements PlugIn {
 		}
 		return segmentationMask;
 	}
-	
-	/*Multithreading*/
-	public class MultiThreader extends Thread{
-		public RegionGrow2D r2d;
-		public int r;
-		private int postErodeReps;
-		private int preErodeReps;
-		private boolean preErode;
-		/*Costructor*/
-		public MultiThreader(RegionGrow2D r2d, int r,int postErodeReps){
-			this.r2d = r2d;
-			this.r = r;
-			this.postErodeReps = postErodeReps;
-			preErode = false;
-		}
-		/*Costructor with pre-erode*/
-		public MultiThreader(RegionGrow2D r2d, int r,int preErodeReps,int postErodeReps){
-			this.r2d = r2d;
-			this.r = r;
-			this.postErodeReps = postErodeReps;
-			this.preErodeReps = preErodeReps;
-			preErode = true;
-		}
-		
-		public void run(){
-			if (preErode){
-				for (int i = 0;i<preErodeReps;++i){
-					r2d.erodeMask();	//Remove extra stuff from sagittal growing...
-				}
-			}
-			if (r2d.maskHasPixels()){
-				r2d.growRegion();
-				r2d.fillVoids(); //Fill void
-				for (int i = 0; i<postErodeReps;++i){
-					r2d.erodeMask();	/*Try to remove spurs...*/
-				}
-			}
-		}
-	}
-	
+
 	/*Horizontal image result*/
 	private ImagePlus  createHorizontalVisualizationStack(byte[][][] mask3d,double[][][] data3d, Calibration calibration) {
 		int width	=mask3d.length;

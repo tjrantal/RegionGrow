@@ -199,7 +199,7 @@ public class LBP{
 	}
 	
 	/*reshape 3D Matrix*/
-	public double[] reshape(double[][][] dataIn,int xb,int xe,int yb,int ye, int db, int de){
+	public static double[] reshape(double[][][] dataIn,int xb,int xe,int yb,int ye, int db, int de){
 		double[] array = new double[(xe-xb+1)*(ye-yb+1)*(de-db+1)];
 		int ind = 0;
 		for (int d = db;d<=de;++d){
@@ -214,7 +214,7 @@ public class LBP{
 	}
 	
 		/*reshape 3D Matrix*/
-	public double[] reshape(double[][][] dataIn,byte[][][] mask){
+	public static double[] reshape(double[][][] dataIn,byte[][][] mask){
 		int[][] indices = RegionGrow.findStatic(mask);
 		double[] array = new double[indices.length];
 		for (int i = 0;i<indices.length;++i){
