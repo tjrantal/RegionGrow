@@ -103,6 +103,63 @@ public class Filters{
 		return q;
 	}
 	
+	/*Min, max and mean*/
+	public static int min(int a, int b){return a < b ? a:b;}
+	public static int max(int a, int b){return a > b ? a:b;}
+	public static double min(double a, double b){return a < b ? a:b;}
+	public static double max(double a, double b){return a > b ? a:b;}
+	public static double mean(int[] a){
+		double returnVal = 0;
+		for (int i = 0;i<a.length;++i){
+			returnVal+=(double) a[i];
+		}
+		return returnVal/=(double) a.length;	
+	}
+	public static double mean(double[] a){
+		double returnVal = 0;
+		for (int i = 0;i<a.length;++i){
+			returnVal+= a[i];
+		}
+		return returnVal/=(double) a.length;	
+	}
+	/*Min max and mean defined*/
+	
+	/*Cross-correlation analysis, equations taken from http://paulbourke.net/miscellaneous/correlate/*/
+	/*Calculate 1D cross-correlation for two arrays with same length. No wrapping, i.e. correlation length is limited*/
+	public static double[] xcorr(double[] series1,double[] series2, int maxDelay){
+		double[] xcor = new double[maxDelay*2+1];
+		double ms1 =0;
+		double ms2 =0;
+		int length = min(series1.length,series2.length);
+		/*calculate means*/
+		for (int i = 0; i<length;i++){
+			ms1+=series1[i];
+			ms2+=series2[i];
+		}
+		ms1 = mean(series1);
+		ms2 = mean(series2);
+		double mx;
+		double my;
+		double summxmy;
+		double summxSq;
+		double summySq;
+		double summxmySq;
+		for (int i =-maxDelay;i<=maxDelay;i++){//ignore beginning and end of the signal...
+			summxmy=0;
+			summxSq=0;
+			summySq=0;
+			for (int j = maxDelay; j< length-maxDelay; j++){
+				mx = series1[j]-ms1;
+				my = series2[j+i]-ms2;
+				summxmy+=mx*my;
+				summxSq+=mx*mx;
+				summySq+=my*my;
+			}
+			xcor[i+maxDelay]=summxmy/Math.sqrt(summxSq*summySq);
+		}
+		return xcor;
+	}
+	
 	
 	public static final double cubic(double x) {
 		final double a = 0.5; // Catmull-Rom interpolation
