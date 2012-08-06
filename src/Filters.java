@@ -142,7 +142,29 @@ public class Filters{
 		}
 		return returnVal/=((double) (a.length*a[0].length));	
 	}
-
+	/*3D mean*/
+	public static double mean(int[][][] a){
+		double returnVal = 0;
+		for (int i = 0;i<a.length;++i){
+			for (int j = 0;j<a[i].length;++j){
+				for (int k = 0;k<a[i][j].length;++k){
+					returnVal+= (double) a[i][j][k];
+				}
+			}
+		}
+		return returnVal/=((double) (a.length*a[0].length));	
+	}
+	public static double mean(double[][][] a){
+		double returnVal = 0;
+		for (int i = 0;i<a.length;++i){
+			for (int j = 0;j<a[i].length;++j){
+				for (int k = 0;k<a[i][j].length;++k){
+					returnVal+= a[i][j][k];
+				}
+			}
+		}
+		return returnVal/=((double) (a.length*a[0].length));	
+	}
 	
 	
 	/*Cross-correlation analysis, equations taken from http://paulbourke.net/miscellaneous/correlate/*/
@@ -212,6 +234,52 @@ public class Filters{
 					}
 				}
 				xcor[i][j]=summxmy/Math.sqrt(summxSq*summySq);
+			}
+		}
+		return xcor;
+	}
+	
+	/*
+		Calculate 3D cross-correlation for two 3D arrays. matrix2 needs to be smaller in all dimensions. Not calculated for non-overlapping positions.	
+	*/
+	public static double[][][] xcorr(double[][][] matrix1,double[][][] matrix2){
+		double[][][] xcor = new double[matrix1.length-matrix2.length+1][matrix1[0].length-matrix2[0].length+1][matrix1[0][0].length-matrix2[0][0].length+1];
+		double ms1 =0;
+		double ms2 =0;
+		int width = matrix1.length;
+		int height = matrix1[0].length;
+		int depth = matrix1[0][0].length;
+		/*calculate means*/
+		//System.out.println("Calc means");
+		ms1 = mean(matrix1);
+		ms2 = mean(matrix2);
+		double mx;
+		double my;
+		double summxmy;
+		double summxSq;
+		double summySq;
+		double summxmySq;
+		//System.out.println("XCorr");
+		for (int i =0;i<=width-matrix2.length;++i){
+			for (int j =0;j<=height-matrix2[0].length;++j){//ignore beginning and end of the signal...
+				for (int k =0;k<=depth-matrix2[0][0].length;++k){//ignore beginning and end of the signal...
+					summxmy=0;
+					summxSq=0;
+					summySq=0;
+					for (int i2 = 0; i2< matrix2.length; ++i2){
+						for (int j2 = 0; j2< matrix2[i2].length; ++j2){
+							for (int k2 = 0; k2< matrix2[i2][j2].length; ++k2){
+								mx = matrix1[i+i2][j+j2][k+k2]-ms1;
+								my = matrix2[i2][j2][k2]-ms2;
+								summxmy+=mx*my;
+								summxSq+=mx*mx;
+								summySq+=my*my;
+							}
+						}
+					}
+					xcor[i][j][k]=summxmy/Math.sqrt(summxSq*summySq);
+					//System.out.println("I "+i+" J "+j+" XCORR "+xcor[i][j]);
+				}
 			}
 		}
 		return xcor;
