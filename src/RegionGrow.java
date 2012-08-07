@@ -15,12 +15,18 @@ public abstract class RegionGrow{
 	public double maxDiff;
 	public boolean success;
 	
+	
 	/*Global variables, saves effort in declaring functions...*/
 	public int rowCount;
 	public int columnCount;
 	public double currentMean;
 	public long maskArea;
 	public PriorityQueue<NextPixel> pixelQueue;
+	
+	/*LBP parameters*/
+	protected int lbpBlockRadius;
+	protected double[] lbpModelHist;
+	protected LBP lbp;
 	
 	private boolean maskHasPixels(){
 		/*Implement in subclasses*/
@@ -35,6 +41,14 @@ public abstract class RegionGrow{
 	private double getCurrentMean(){
 		/*Implement in subclasses*/
 		return 0;
+	}
+	
+	/*Set LBP model histogram*/
+	public void setLBPModel(double[] modelHist){
+		lbpModelHist = new double[modelHist.length];
+		for (int i = 0; i<modelHist.length;++i){
+			lbpModelHist[i] = modelHist[i];
+		}
 	}
 	
 	/*Get 3D Stack mask mean*/

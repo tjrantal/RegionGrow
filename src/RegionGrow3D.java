@@ -16,10 +16,10 @@ public class RegionGrow3D extends RegionGrow{
 	/*Parameters*/
 	private double[][][] dataSlice;
 	public byte[][][] segmentationMask;
-	private double[] lbpModelHist;
-	private double[][][] lbp3D;
-	private int lbpBlockRadius;
-	private LBP lbp;
+	private double[][][]lbp3D;
+	
+	
+	
 	private double greyLimit;
 	private double greySTD;
 	/*Global variables, saves effort in declaring functions...*/
@@ -69,14 +69,7 @@ public class RegionGrow3D extends RegionGrow{
 		//System.out.println("Constructor w");
 		growRegionLBP();
 	}
-	
-	public void setLBPModel(double[] modelHist){
-		lbpModelHist = new double[modelHist.length];
-		for (int i = 0; i<modelHist.length;++i){
-			lbpModelHist[i] = modelHist[i];
-		}
-	}
-	
+
 	private void growRegionLBP(){
 		/*Init variables and add seed points to the queue*/
 		pixelQueue	= new PriorityQueue<NextPixel>(1000000);

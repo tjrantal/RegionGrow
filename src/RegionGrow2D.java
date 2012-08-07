@@ -13,6 +13,7 @@ public class RegionGrow2D extends RegionGrow{
 	/*Parameters*/
 	protected double[][] dataSlice;
 	public byte[][] segmentationMask;
+	private double[][] lbp2D;
 	
 	/*Global variables, saves effort in declaring functions...*/
 	protected byte[][] visited;
@@ -42,6 +43,18 @@ public class RegionGrow2D extends RegionGrow{
 		this.maskArea = maskArea;
 	}
 	
+	/*Constructor for LBP*/
+	public RegionGrow2D(double[][] dataSlice, byte[][] segmentationMask, double maxDiff,double[][] lbp2D,LBP lbp,int lbpBlockRadius ,double[] lbpModelHist){
+		this.dataSlice = dataSlice;
+		this.segmentationMask = segmentationMask;
+		this.maxDiff = maxDiff;
+		this.lbp2D = lbp2D;
+		this.lbp = lbp;
+		setLBPModel(lbpModelHist);
+		this.lbpBlockRadius = lbpBlockRadius;
+	}
+	
+	
 	public boolean maskHasPixels(){
 		for (int i=0; i<segmentationMask.length; i++){
 			for (int j=0; j<segmentationMask[i].length; j++){
@@ -52,6 +65,97 @@ public class RegionGrow2D extends RegionGrow{
 		}
 		return false;
 	}
+	
+	public boolean growRegionLBP(){
+		/*Init variables and add seed points to the queue*/
+		rowCount = dataSlice[0].length;
+		columnCount = dataSlice.length;
+		pixelQueue = new PriorityQueue<NextPixel>();	/*Try to reserve memory to enable faster execution...*/
+		
+		visited = new byte[columnCount][rowCount];
+
+		/*Init pixelQueue*/
+		int[][] seedIndices = find(segmentationMask);
+		if (seedIndices == null){return false;}
+		double[] lbpHist;
+		for (int i = 0; i<seedIndices.length; ++i){
+			if (seedIndices[i][0] >= lbpBlockRadius && seedIndices[i][0] < columnCount-lbpBlockRadius && 
+				seedIndices[i][1] >= lbpBlockRadius && seedIndices[i][1] <  rowCount-lbpBlockRadius){
+		
+				int[] coordinates = {seedIndices[i][0],seedIndices[i][1]};
+				lbpHist = lbp.histc(lbp.reshape(lbp2D,coordinates[0]-lbpBlockRadius,coordinates[0]+lbpBlockRadius,coordinates[1]-lbpBlockRadius,coordinates[1]+lbpBlockRadius));
+				pixelQueue.add(new NextPixel(1.0-lbp.checkClose(lbpHist,lbpModelHist),coordinates));
+			}
+			
+			
+		}
+		
+		/*Grow Region*/
+		NextPixel nextPixel;
+		int[][] neighbourhood = new int[4][2];
+		int[] coordinates;
+		while (pixelQueue.size() > 0){ //Go through all cells in queue
+			nextPixel  = pixelQueue.poll();	/*Get the pixel with the lowest cost and remove it from the queue*/
+			/*In case the pixel has been visited subsequent to having been added*/
+			while (visited[nextPixel.coordinates[0]][nextPixel.coordinates[1]] == 1 && pixelQueue.size() > 0){
+				nextPixel  = pixelQueue.poll();	/*Get the pixel with the lowest cost and remove it from the queue*/
+			}
+			/*	Add 4-connected neighbourhood to the  queue, unless the
+			neighbourhood pixels have already been visited or are part of the
+			mask already		*/
+			if (nextPixel.cost <= maxDiff){    //If cost is still less than maxDiff
+				coordinates = nextPixel.coordinates;
+				//System.out.println("r "+coordinates[0]+" c "+coordinates[1]);
+				visited[coordinates[0]][coordinates[1]] = (byte) 1;
+				if (segmentationMask[coordinates[0]][coordinates[1]] ==0){
+					segmentationMask[coordinates[0]][coordinates[1]] = 1;
+					++maskArea;	//Add the new pixel to the area
+					currentMean += ((dataSlice[coordinates[0]][coordinates[1]]-currentMean)/((double) maskArea)); //Adding the weighted difference updates the mean...
+					//currentMean = getCurrentMean();  //The mean may be updated to include the new pixel. Might work just as well without update with several seeds...
+				}
+				
+				
+				
+				//Check 4-connected neighbour
+				neighbourhood[0][0] = coordinates[0]-1;	/*Left one*/
+				neighbourhood[1][0] = coordinates[0]+1;	/*Right one*/
+				neighbourhood[2][0] = coordinates[0];
+				neighbourhood[3][0] = coordinates[0];
+				
+				neighbourhood[0][1] = coordinates[1];
+				neighbourhood[1][1] = coordinates[1];
+				neighbourhood[2][1] = coordinates[1]-1;	/*Up one*/
+				neighbourhood[3][1] = coordinates[1]+1;	/*Down one*/
+
+				//System.out.println("Qlength "+pixelQueue.size()+" mean "+currentMean+" alt Mean "+currentMean2+" area "+maskArea);
+				checkNeighboursLBP(neighbourhood);
+			}else{ //First pixel with higher than maxDiff cost or run out of pixels
+				//System.out.println("Break");
+				break;
+			}
+        
+		}
+		return true;
+	}
+	
+	/*Update pixel queue*/
+	protected void checkNeighboursLBP(int[][] neighbourhood){
+		int[] coordinates;
+		double[] lbpHist;
+        for (int r = 0;r<neighbourhood.length;++r){
+			coordinates = neighbourhood[r];
+            if (coordinates[0] >= lbpBlockRadius && coordinates[0] < columnCount-lbpBlockRadius && 
+				coordinates[1] >=lbpBlockRadius && coordinates[1] <  rowCount-lbpBlockRadius){ //If the neigbour is within the image...
+               if (visited[coordinates[0]][coordinates[1]] == (byte) 0 && segmentationMask[coordinates[0]][coordinates[1]] == 0){
+					int[] queueCoordinates = {coordinates[0],coordinates[1]};
+					lbpHist = lbp.histc(lbp.reshape(lbp2D,coordinates[0]-lbpBlockRadius,coordinates[0]+lbpBlockRadius,coordinates[1]-lbpBlockRadius,coordinates[1]+lbpBlockRadius));
+					pixelQueue.add(new NextPixel(1.0-lbp.checkClose(lbpHist,lbpModelHist),queueCoordinates));
+               }
+            }
+        }
+	}
+	
+	
 	
 	public boolean growRegion(){
 		/*Init variables and add seed points to the queue*/
