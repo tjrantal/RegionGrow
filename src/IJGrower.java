@@ -86,7 +86,7 @@ public class IJGrower implements PlugIn {
 			segmentationMask = r3d.segmentationMask;
 		}else{			/*2D region grow*/
 		
-			segmentationMask = horizontalPlaneSegmentation(image3D,segmentationMask,2.0,0,1);
+			segmentationMask = horizontalPlaneSegmentation(image3D,segmentationMask,3.0,0,1);
 			/*Grow up down too*/
 			if(growUpDown){
 				IJ.log("UpDown");
@@ -115,12 +115,12 @@ public class IJGrower implements PlugIn {
 		
 		Calibration calibration = imp.getCalibration();
 		
-		/*
 		double[] vRange = {imp.getDisplayRangeMin(),imp.getDisplayRangeMax()};
 		//Visualize segmentation on the original image
 		ImagePlus visualizationStack = createVisualizationStack(segmentationMask,image3D, calibration);
 		visualizationStack.setDisplayRange(vRange[0],vRange[1]);
 		visualizationStack.show();
+		/*
 		//Visualize segmentation on horizontal plane
 		ImagePlus horizontalStack = createHorizontalVisualizationStack(segmentationMask,image3D, calibration);
 		horizontalStack.setDisplayRange(vRange[0],vRange[1]);

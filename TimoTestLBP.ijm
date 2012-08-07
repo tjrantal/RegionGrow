@@ -1,8 +1,10 @@
+//Start imageJ with more memory java -jar ij.jar -Xmx2G
+
 macro "LookStudyAnalysis"{
 //	setBatchMode(true);
 	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\karsittu\\"
 	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\karsittuLuru\\"
-	
+	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\karsittu\\kh1\\"
 	analyseFiles(sourceDir);
 	
 	//setBatchMode(false);
@@ -32,8 +34,8 @@ macro "LookStudyAnalysis"{
 			run("3D Viewer");
 			call("ij3d.ImageJ3DViewer.setCoordinateSystem", "false");
 			call("ij3d.ImageJ3DViewer.add", "Region", "White", "Region", "50", "true", "true", "true", "2", "2");
-			waitForUser("Click when done");
-			run("Close All");
+			//waitForUser("Click when done");
+			//run("Close All");
 	}
 
 

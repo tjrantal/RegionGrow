@@ -23,7 +23,7 @@ import java.util.*;				/*For enumeration*/
  Result is displayed as a binary image. Works with 3D images stack.
  */
 
-public class IJGrowerLBP implements PlugIn {
+public class IJGrowerT2 implements PlugIn {
 	private int[] seedPoints;
 	private double diffLimit;
 	private boolean threeD;
@@ -58,52 +58,17 @@ public class IJGrowerLBP implements PlugIn {
 		ImageStack stack = imp.getStack();
 		final Object[] imageArrayPointers = stack.getImageArray();
 		
-		/*Construct 3D image and 3D lbp memory stacks*/
+		/*Construct a 3D memory stack*/
         double [][][] image3D = new double[width][height][depth];
-		double[][][] lbp3D = new double[width][height][depth];	/*Initialized to zero by Java as default*/
-		double[][] tempData;
 		short[] temp;
-		
-		IJ.log("Start creating memory stacks");
-        /*Create threads for slices*/
-		List threads = new ArrayList();
-		for (int d = 0; d < depth; ++d) {
+        for (int d = 0; d < depth; ++d) {
             temp = (short[]) imageArrayPointers[d];
-			tempData = new double[width][height];
 			for (int r = 0;r<height;++r){
 				for (int c = 0;c<width;++c){
 					image3D[c][r][d] = (double) temp[c+r*width];
-					tempData[c][r] = (double) temp[c+r*width];
 				}
 			}
-			Thread newThread = new MultiThreaderLBP(tempData,d);
-			newThread.start();
-			threads.add(newThread);
-
-			IJ.log("Slice "+(d+1)+"/"+depth+" threading");
         }
-		/*Catch the slice threads*/
-		for (int t = 0; t<threads.size();++t){
-			try{
-				((Thread) threads.get(t)).join();
-			}catch(Exception er){}
-			
-			/*Copy the mask result to mask3D*/
-			int d = ((MultiThreaderLBP) threads.get(t)).d;
-			IJ.log("Slice "+(d+1)+"/"+depth+" finished");
-			byte[][] lbpImage = ((MultiThreaderLBP) threads.get(t)).lbpImage;
-			for (int r = 0;r<height;++r){
-				for (int c = 0;c<width;++c){
-					lbp3D[c][r][d]=(double) lbpImage[c][r];
-				}
-			}
-		}
-		
-		
-		
-		
-		
-		IJ.log("Memory stacks done");
 		
 		/*Construct the segmented mask*/
 		byte[][][] segmentationMask = new byte[width][height][depth];	/*Initialized to zero by Java as default*/
@@ -115,42 +80,29 @@ public class IJGrowerLBP implements PlugIn {
 				}
 			}
         }
+		/*Grow stack*/
+		if (threeD){	/*3D region grow*/
+			RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, diffLimit);
+			segmentationMask = r3d.segmentationMask;
+		}else{			/*2D region grow*/
 		
-		//Test LBP Grow
-		//Get LBP model histogram
-		LBP lbp = new LBP(16,2);
-		int lbpRadius = 6;
-		double[] lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
-		IJ.log("Starting LP grow");
-		segmentationMask = frontalPlaneSegmentationLBP(lbp3D,segmentationMask,0.25,lbp,lbpRadius,lbpModelHist,0,0);
-		/*
-		
-		//Grow seed mask...
-		
-		segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,2.0,0,2*lbpRadius);
-		//Get LBP model histogram
-		LBP lbp = new LBP(16,2);
-		double[] lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
-		//Grow stack
-		IJ.log("Starting 3D");
+			segmentationMask = horizontalPlaneSegmentation(image3D,segmentationMask,3.0,0,1);
+			/*Grow up down too*/
+			if(growUpDown){
+				IJ.log("UpDown");
+				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,3.0,0,0);
+			/*Grow once more in sagittal direction*/
+				if (secondGrow){
+					
+				}
+				
+			}
 			
-		double[] meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-		double stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
-		double greySTD = 2.0*stDev;
-		
-		RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.15,lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
-		segmentationMask = r3d.segmentationMask;
-		r3d = null;
-		System.gc();
-		IJ.log("3D done");
-		///Grow once more in frontal plane...
-		if (secondGrow){
-			System.gc();
-			segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,4.5,2,0);
 		}
-		*/
+		
+		
 
-		//Dump out the results
+		/*Dump out the results*/
 		/*
 		WriteMat writeMat = new WriteMat("C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\matlabDump\\testDump.mat");
 		writeMat.writeArray(image3D,"data");
@@ -159,77 +111,29 @@ public class IJGrowerLBP implements PlugIn {
 		*/
 		
 		
-		//Visualize result
+		/*Visualize result*/
 		
 		Calibration calibration = imp.getCalibration();
+		
 		double[] vRange = {imp.getDisplayRangeMin(),imp.getDisplayRangeMax()};
 		//Visualize segmentation on the original image
 		ImagePlus visualizationStack = createVisualizationStack(segmentationMask,image3D, calibration);
 		visualizationStack.setDisplayRange(vRange[0],vRange[1]);
 		visualizationStack.show();
-		//Visualize segmentation on horizontal plane
 		/*
+		//Visualize segmentation on horizontal plane
 		ImagePlus horizontalStack = createHorizontalVisualizationStack(segmentationMask,image3D, calibration);
 		horizontalStack.setDisplayRange(vRange[0],vRange[1]);
 		horizontalStack.show();
 		*/
 		//Visualize mask
-		
         ImagePlus resultStack = createOutputStack(segmentationMask, calibration);
 		resultStack.show();
 		
     }
 	
-	/*Frontal plane LBP analysis*/	
-		byte[][][] frontalPlaneSegmentationLBP(double[][][] image3D, byte[][][] segmentationMask,double diffLimit, LBP lbp, int lbpBlockRadius, double[] lbpModelHist,int preErodeReps, int postErodeReps){
-		int width = image3D.length;
-		int height = image3D[0].length;
-		int depth = image3D[0][0].length;
-		double[][] sliceData;
-		byte[][] sliceMask;
-		boolean maskHasPixels;
-		List threads = new ArrayList();
-		/*Get diffLimit*/
-		for (int d = 0; d < depth; ++d) {
-			/*Get the slice*/
-			sliceData = new double[width][height];
-			sliceMask = new byte[width][height];
-			maskHasPixels =false;
-			for (int r = 0;r<height;++r){
-				for (int c = 0;c<width;++c){
-					sliceData[c][r] = image3D[c][r][d];
-					sliceMask[c][r] = segmentationMask[c][r][d];
-					if (sliceMask[c][r] ==1){
-						maskHasPixels = true;
-					}
-				}
-			}
-			/*Run the region growing*/
-			if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
-				RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,lbp,lbpBlockRadius,lbpModelHist);
-				Thread newThread = new MultiThreaderLBP2D(rg,d,preErodeReps,postErodeReps);
-				newThread.start();
-				threads.add(newThread);
-			}
-		}
-		/*Wait for the threads to finish...*/
-		for (int t = 0; t<threads.size();++t){
-			try{
-				((Thread) threads.get(t)).join();
-			}catch(Exception er){}
-			/*Copy the mask result to mask3D*/
-			int d = ((MultiThreaderLBP2D) threads.get(t)).r;
-			for (int r = 0;r<height;++r){
-				for (int c = 0;c<width;++c){
-					segmentationMask[c][r][d]=((MultiThreaderLBP2D) threads.get(t)).r2d.segmentationMask[c][r];
-				}
-			}
-		}
-		return segmentationMask;
-	}
+	/*Frontal plane analysis*/
 	
-	
-	/*Frontal plane analysis*/	
 	byte[][][] frontalPlaneSegmentation(double[][][] image3D, byte[][][] segmentationMask,double stdMultiplier,int preErodeReps, int postErodeReps){
 		int width = image3D.length;
 		int height = image3D[0].length;
@@ -250,6 +154,7 @@ public class IJGrowerLBP implements PlugIn {
 			/*Get the slice*/
 			sliceData = new double[width][height];
 			sliceMask = new byte[width][height];
+			IJ.log("Slice "+d);
 			maskHasPixels =false;
 			for (int r = 0;r<height;++r){
 				for (int c = 0;c<width;++c){
@@ -261,11 +166,13 @@ public class IJGrowerLBP implements PlugIn {
 				}
 			}
 			/*Run the region growing*/
+			IJ.log("Slice "+d+" hasPixels "+maskHasPixels);
 			if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
 				RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
 				Thread newThread = new MultiThreader(rg,d,preErodeReps,postErodeReps);
 				newThread.start();
 				threads.add(newThread);
+				IJ.log("Fired up thread "+threads.size());
 			}
 		}
 		/*Wait for the threads to finish...*/
@@ -280,6 +187,7 @@ public class IJGrowerLBP implements PlugIn {
 					segmentationMask[c][r][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][r];
 				}
 			}
+			IJ.log("Joined thread "+t+" of "+threads.size());
 		}
 		return segmentationMask;
 	}
@@ -401,7 +309,46 @@ public class IJGrowerLBP implements PlugIn {
 		}
 		return segmentationMask;
 	}
-
+	
+	/*Multithreading*/
+	public class MultiThreader extends Thread{
+		public RegionGrow2D r2d;
+		public int r;
+		private int postErodeReps;
+		private int preErodeReps;
+		private boolean preErode;
+		/*Costructor*/
+		public MultiThreader(RegionGrow2D r2d, int r,int postErodeReps){
+			this.r2d = r2d;
+			this.r = r;
+			this.postErodeReps = postErodeReps;
+			preErode = false;
+		}
+		/*Costructor with pre-erode*/
+		public MultiThreader(RegionGrow2D r2d, int r,int preErodeReps,int postErodeReps){
+			this.r2d = r2d;
+			this.r = r;
+			this.postErodeReps = postErodeReps;
+			this.preErodeReps = preErodeReps;
+			preErode = true;
+		}
+		
+		public void run(){
+			if (preErode){
+				for (int i = 0;i<preErodeReps;++i){
+					r2d.erodeMask();	//Remove extra stuff from sagittal growing...
+				}
+			}
+			if (r2d.maskHasPixels()){
+				r2d.growRegion();
+				r2d.fillVoids(); //Fill void
+				for (int i = 0; i<postErodeReps;++i){
+					r2d.erodeMask();	/*Try to remove spurs...*/
+				}
+			}
+		}
+	}
+	
 	/*Horizontal image result*/
 	private ImagePlus  createHorizontalVisualizationStack(byte[][][] mask3d,double[][][] data3d, Calibration calibration) {
 		int width	=mask3d.length;
@@ -473,7 +420,7 @@ public class IJGrowerLBP implements PlugIn {
 		/*Set Calibration*/
 		returnStack.getCalibration().pixelWidth = calibration.pixelWidth;
 		returnStack.getCalibration().pixelHeight  = calibration.pixelHeight;
-		returnStack.getCalibration().pixelDepth  = calibration.pixelDepth;
+		returnStack.getCalibration().pixelDepth  = 6.0;//calibration.pixelDepth;
 		returnStack.getCalibration().setUnit("mm");
 		//returnStack.setDisplayRange( 0, 1);
         return returnStack;
@@ -508,7 +455,7 @@ public class IJGrowerLBP implements PlugIn {
 		/*Set Calibration*/
 		returnStack.getCalibration().pixelWidth = calibration.pixelWidth;
 		returnStack.getCalibration().pixelHeight  = calibration.pixelHeight;
-		returnStack.getCalibration().pixelDepth  = calibration.pixelDepth;
+		returnStack.getCalibration().pixelDepth  = 6.0;//calibration.pixelDepth;
 		returnStack.getCalibration().setUnit("mm");
 		//returnStack.setDisplayRange( 0, 1);
         return returnStack;

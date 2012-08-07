@@ -28,7 +28,7 @@ public class LBP{
 			cutPoints[i] = i;
 		}
 		mapping = getMapping(samples);
-		System.out.println("Mapping length "+mapping.length+" samples "+samples);
+		//System.out.println("Mapping length "+mapping.length+" samples "+samples);
 		neighbourhood = getCircularNeighbourhood(radius,samples);
 		
 	}

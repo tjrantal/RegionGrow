@@ -44,11 +44,11 @@ public class RegionGrow2D extends RegionGrow{
 	}
 	
 	/*Constructor for LBP*/
-	public RegionGrow2D(double[][] dataSlice, byte[][] segmentationMask, double maxDiff,double[][] lbp2D,LBP lbp,int lbpBlockRadius ,double[] lbpModelHist){
+	public RegionGrow2D(double[][] dataSlice, byte[][] segmentationMask, double maxDiff,LBP lbp,int lbpBlockRadius ,double[] lbpModelHist){
 		this.dataSlice = dataSlice;
 		this.segmentationMask = segmentationMask;
 		this.maxDiff = maxDiff;
-		this.lbp2D = lbp2D;
+		this.lbp2D = dataSlice;
 		this.lbp = lbp;
 		setLBPModel(lbpModelHist);
 		this.lbpBlockRadius = lbpBlockRadius;
@@ -68,8 +68,8 @@ public class RegionGrow2D extends RegionGrow{
 	
 	public boolean growRegionLBP(){
 		/*Init variables and add seed points to the queue*/
-		rowCount = dataSlice[0].length;
-		columnCount = dataSlice.length;
+		rowCount = lbp2D[0].length;
+		columnCount = lbp2D.length;
 		pixelQueue = new PriorityQueue<NextPixel>();	/*Try to reserve memory to enable faster execution...*/
 		
 		visited = new byte[columnCount][rowCount];
@@ -89,7 +89,6 @@ public class RegionGrow2D extends RegionGrow{
 			
 			
 		}
-		
 		/*Grow Region*/
 		NextPixel nextPixel;
 		int[][] neighbourhood = new int[4][2];
@@ -109,9 +108,6 @@ public class RegionGrow2D extends RegionGrow{
 				visited[coordinates[0]][coordinates[1]] = (byte) 1;
 				if (segmentationMask[coordinates[0]][coordinates[1]] ==0){
 					segmentationMask[coordinates[0]][coordinates[1]] = 1;
-					++maskArea;	//Add the new pixel to the area
-					currentMean += ((dataSlice[coordinates[0]][coordinates[1]]-currentMean)/((double) maskArea)); //Adding the weighted difference updates the mean...
-					//currentMean = getCurrentMean();  //The mean may be updated to include the new pixel. Might work just as well without update with several seeds...
 				}
 				
 				
