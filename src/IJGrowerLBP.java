@@ -124,7 +124,12 @@ public class IJGrowerLBP implements PlugIn {
 		IJ.log("Starting LP grow");
 		segmentationMask = frontalPlaneSegmentationLBP(lbp3D,segmentationMask,0.15,lbp,lbpRadius,lbpModelHist,0,0);
 		if (secondGrow){
-			segmentationMask = horizontalPlaneSegmentation(image3D,segmentationMask,1.0,0,0,false);
+			lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
+			double[] meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+			double stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
+			double greySTD = 1.0*stDev;
+			RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.12,lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
+			segmentationMask = r3d.segmentationMask;
 		}
 		/*
 		
