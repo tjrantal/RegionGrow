@@ -124,7 +124,7 @@ public class IJGrowerLBP implements PlugIn {
 		IJ.log("Starting LP grow");
 		segmentationMask = frontalPlaneSegmentationLBP(lbp3D,segmentationMask,0.15,lbp,lbpRadius,lbpModelHist,0,0);
 		if (secondGrow){
-			segmentationMask = horizontalPlaneSegmentation(image3D,segmentationMask,2.0,0,1);
+			segmentationMask = horizontalPlaneSegmentation(image3D,segmentationMask,1.0,0,0,false);
 		}
 		/*
 		
@@ -286,9 +286,59 @@ public class IJGrowerLBP implements PlugIn {
 		}
 		return segmentationMask;
 	}
+
+	/*Horizontal plane analysis*/
+	byte[][][] horizontalPlaneSegmentationLBP(double[][][] image3D, byte[][][] segmentationMask,double diffLimit, LBP lbp, int lbpBlockRadius, double[] lbpModelHist,int preErodeReps, int postErodeReps){
+		int width = image3D.length;
+		int height = image3D[0].length;
+		int depth = image3D[0][0].length;		
+		double[][] sliceData;
+		byte[][] sliceMask;
+		double stDev;
+		boolean maskHasPixels;
+		List threads = new ArrayList();
+		/*Go through all of the slices*/
+		threads.clear();
+		for (int r = 0;r<height;++r){
+			sliceData = new double[width][depth];
+			sliceMask = new byte[width][depth];
+			/*Get the slice*/
+			maskHasPixels = false;
+			for (int d = 0; d < depth; ++d) {
+				for (int c = 0;c<width;++c){
+					sliceData[c][d] = image3D[c][r][d];
+					sliceMask[c][d] = segmentationMask[c][r][d];
+					if (sliceMask[c][d] ==1){
+						maskHasPixels = true;
+					}
+				}
+			}
+			/*Run the region growing*/
+			if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
+				RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,lbp,lbpBlockRadius,lbpModelHist);
+				Thread newThread = new MultiThreaderLBP2D(rg,r,preErodeReps,postErodeReps);
+				newThread.start();
+				threads.add(newThread);
+			}
+		}
+		/*Wait for the threads to finish...*/
+		for (int t = 0; t<threads.size();++t){
+			try{
+				((Thread) threads.get(t)).join();
+			}catch(Exception er){}
+			/*Copy the mask result to mask3D*/
+			int r = ((MultiThreaderLBP2D) threads.get(t)).r;
+			for (int d = 0; d < depth; ++d) {
+				for (int c = 0;c<width;++c){
+					segmentationMask[c][r][d]=((MultiThreaderLBP2D) threads.get(t)).r2d.segmentationMask[c][d];
+				}
+			}
+		}
+		return segmentationMask;
+	}
 	
 	/*Horizontal plane analysis*/
-	byte[][][] horizontalPlaneSegmentation(double[][][] image3D, byte[][][] segmentationMask,double stdMultiplier,int preErodeReps, int postErodeReps){
+	byte[][][] horizontalPlaneSegmentation(double[][][] image3D, byte[][][] segmentationMask,double stdMultiplier,int preErodeReps, int postErodeReps, boolean doFillVoids){
 		int width = image3D.length;
 		int height = image3D[0].length;
 		int depth = image3D[0][0].length;		
@@ -325,7 +375,7 @@ public class IJGrowerLBP implements PlugIn {
 			if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
 				/*Try multithreading here*/
 				RegionGrow2D rg = new RegionGrow2D(sliceData,sliceMask,diffLimit,meanAndArea[0],(long) meanAndArea[1]);
-				Thread newThread = new MultiThreader(rg,r,preErodeReps,postErodeReps);
+				Thread newThread = new MultiThreader(rg,r,preErodeReps,postErodeReps,doFillVoids);
 				newThread.start();
 				threads.add(newThread);
 			}

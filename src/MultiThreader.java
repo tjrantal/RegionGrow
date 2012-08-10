@@ -7,11 +7,13 @@ public class MultiThreader extends Thread{
 		private int postErodeReps;
 		private int preErodeReps;
 		private boolean preErode;
+		private boolean doFillVoids;
 		/*Costructor*/
 		public MultiThreader(RegionGrow2D r2d, int r,int postErodeReps){
 			this.r2d = r2d;
 			this.r = r;
 			this.postErodeReps = postErodeReps;
+			doFillVoids = true;
 			preErode = false;
 		}
 		/*Costructor with pre-erode*/
@@ -20,6 +22,24 @@ public class MultiThreader extends Thread{
 			this.r = r;
 			this.postErodeReps = postErodeReps;
 			this.preErodeReps = preErodeReps;
+			doFillVoids = true;
+			preErode = true;
+		}
+		/*Costructor*/
+		public MultiThreader(RegionGrow2D r2d, int r,int postErodeReps,boolean doFillVoids){
+			this.r2d = r2d;
+			this.r = r;
+			this.postErodeReps = postErodeReps;
+			this.doFillVoids = doFillVoids;
+			preErode = false;
+		}
+		/*Costructor with pre-erode*/
+		public MultiThreader(RegionGrow2D r2d, int r,int preErodeReps,int postErodeReps,boolean doFillVoids){
+			this.r2d = r2d;
+			this.r = r;
+			this.postErodeReps = postErodeReps;
+			this.preErodeReps = preErodeReps;
+			this.doFillVoids = doFillVoids;
 			preErode = true;
 		}
 		
@@ -31,7 +51,9 @@ public class MultiThreader extends Thread{
 			}
 			if (r2d.maskHasPixels()){
 				r2d.growRegion();
-				r2d.fillVoids(); //Fill void
+				if (doFillVoids){
+					r2d.fillVoids(); //Fill void
+				}
 				for (int i = 0; i<postErodeReps;++i){
 					r2d.erodeMask();	/*Try to remove spurs...*/
 				}
