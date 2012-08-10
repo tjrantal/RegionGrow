@@ -119,10 +119,13 @@ public class IJGrowerLBP implements PlugIn {
 		//Test LBP Grow
 		//Get LBP model histogram
 		LBP lbp = new LBP(16,2);
-		int lbpRadius = 6;
+		int lbpRadius = 7;
 		double[] lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
 		IJ.log("Starting LP grow");
-		segmentationMask = frontalPlaneSegmentationLBP(lbp3D,segmentationMask,0.25,lbp,lbpRadius,lbpModelHist,0,0);
+		segmentationMask = frontalPlaneSegmentationLBP(lbp3D,segmentationMask,0.15,lbp,lbpRadius,lbpModelHist,0,0);
+		if (secondGrow){
+			segmentationMask = horizontalPlaneSegmentation(image3D,segmentationMask,2.0,0,1);
+		}
 		/*
 		
 		//Grow seed mask...
