@@ -2,8 +2,8 @@
 
 macro "LookStudyAnalysis"{
 //	setBatchMode(true);
-//	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\karsittu\\"
-	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\karsittuLuru\\"
+	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\karsittu\\"
+//	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\karsittuLuru\\"
 //	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\karsittu\\kh1\\"
 	analyseFiles(sourceDir);
 	

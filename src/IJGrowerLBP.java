@@ -132,6 +132,7 @@ public class IJGrowerLBP implements PlugIn {
 		
 		if (secondGrow){
 			RegionGrow3D r3d;
+			/*3D grow to cover the whole bone*/
 			while (newPixelNo/oldPixelNo > 1.01){ /*Grow until less than 1% new pixels are added*/
 				oldPixelNo = newPixelNo;
 				lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
@@ -144,6 +145,18 @@ public class IJGrowerLBP implements PlugIn {
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				newPixelNo = meanAndArea[1];
 				System.out.println("Pixels in Mask after "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
+			}
+			
+			/*Sagittal grow to get close to bone borders...*/
+			oldPixelNo = 1;
+			
+			while (newPixelNo/oldPixelNo > 1.01){ /*Grow until less than 1% new pixels are added*/
+				oldPixelNo = newPixelNo;
+				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,2.0,0,0);
+				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+				newPixelNo = meanAndArea[1];
+				System.out.println("Pixels in Mask after Sagittal "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
 			}
 			
 		}
