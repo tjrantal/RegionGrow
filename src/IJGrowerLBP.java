@@ -128,8 +128,25 @@ public class IJGrowerLBP implements PlugIn {
 			double[] meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 			double stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
 			double greySTD = 1.0*stDev;
-			RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.12,lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
+			RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.11,lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
 			segmentationMask = r3d.segmentationMask;
+			//lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
+			//segmentationMask = frontalPlaneSegmentationLBP(lbp3D,segmentationMask,0.20,lbp,lbpRadius,lbpModelHist,0,0);
+			segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,1.0,2,0);
+			lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
+			meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
+			greySTD = 1.0*stDev;
+			r3d = new RegionGrow3D(image3D, segmentationMask, 0.11,lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
+			segmentationMask = r3d.segmentationMask;
+			segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,1.0,0,0);
+			lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
+			meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
+			greySTD = 1.0*stDev;
+			r3d = new RegionGrow3D(image3D, segmentationMask, 0.11,lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
+			segmentationMask = r3d.segmentationMask;
+			segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,1.0,0,0);
 		}
 		/*
 		
@@ -172,6 +189,10 @@ public class IJGrowerLBP implements PlugIn {
 		Calibration calibration = imp.getCalibration();
 		double[] vRange = {imp.getDisplayRangeMin(),imp.getDisplayRangeMax()};
 		//Visualize segmentation on the original image
+		
+		ImagePlus resultStack = createOutputStack(segmentationMask, calibration);
+		resultStack.show();
+		
 		ImagePlus visualizationStack = createVisualizationStack(segmentationMask,image3D, calibration);
 		visualizationStack.setDisplayRange(vRange[0],vRange[1]);
 		visualizationStack.show();
@@ -183,8 +204,7 @@ public class IJGrowerLBP implements PlugIn {
 		*/
 		//Visualize mask
 		
-        ImagePlus resultStack = createOutputStack(segmentationMask, calibration);
-		resultStack.show();
+        
 		
     }
 	
