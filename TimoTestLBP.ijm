@@ -2,8 +2,8 @@
 
 macro "LookStudyAnalysis"{
 //	setBatchMode(true);
-	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\karsittu\\"
-//	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\karsittuLuru\\"
+//	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\karsittu\\"
+	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\karsittuLuru\\"
 //	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\karsittu\\kh1\\"
 	analyseFiles(sourceDir);
 	
@@ -14,6 +14,7 @@ macro "LookStudyAnalysis"{
 	function analyseFiles(sourceDir){
 		files = getFileList(sourceDir);
 		for (i = 0; i<files.length;++i){
+		//for (i = 3; i<files.length;++i){
 			testi = File.isDirectory(sourceDir+files[i]);
 			if (File.isDirectory(sourceDir+files[i])==1){ /*A folder*/
 				folderName = replace(files[i],"/","\\");

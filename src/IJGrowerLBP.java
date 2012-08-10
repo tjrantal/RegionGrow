@@ -122,31 +122,30 @@ public class IJGrowerLBP implements PlugIn {
 		int lbpRadius = 7;
 		double[] lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
 		IJ.log("Starting LP grow");
-		segmentationMask = frontalPlaneSegmentationLBP(lbp3D,segmentationMask,0.15,lbp,lbpRadius,lbpModelHist,0,0);
+		segmentationMask = frontalPlaneSegmentationLBP(lbp3D,segmentationMask,0.11,lbp,lbpRadius,lbpModelHist,0,0);
+		double oldPixelNo = 1.0;;
+		double newPixelNo = 2.0;
+		double[] meanAndArea;
+		double stDev;
+		double greySTD;
+		meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+		
 		if (secondGrow){
-			lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
-			double[] meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-			double stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
-			double greySTD = 1.0*stDev;
-			RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.11,lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
-			segmentationMask = r3d.segmentationMask;
-			//lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
-			//segmentationMask = frontalPlaneSegmentationLBP(lbp3D,segmentationMask,0.20,lbp,lbpRadius,lbpModelHist,0,0);
-			segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,1.0,2,0);
-			lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
-			meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
-			greySTD = 1.0*stDev;
-			r3d = new RegionGrow3D(image3D, segmentationMask, 0.11,lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
-			segmentationMask = r3d.segmentationMask;
-			segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,1.0,0,0);
-			lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
-			meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
-			greySTD = 1.0*stDev;
-			r3d = new RegionGrow3D(image3D, segmentationMask, 0.11,lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
-			segmentationMask = r3d.segmentationMask;
-			segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,1.0,0,0);
+			RegionGrow3D r3d;
+			while (newPixelNo/oldPixelNo > 1.01){ /*Grow until less than 1% new pixels are added*/
+				oldPixelNo = newPixelNo;
+				lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
+				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+				stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
+				greySTD = 1.0*stDev;
+				r3d = new RegionGrow3D(image3D, segmentationMask, 0.12,lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
+				segmentationMask = r3d.segmentationMask;
+				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,1.0,0,0);
+				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+				newPixelNo = meanAndArea[1];
+				System.out.println("Pixels in Mask after "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
+			}
+			
 		}
 		/*
 		
