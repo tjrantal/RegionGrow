@@ -30,6 +30,9 @@ public class IJGrowerLBP implements PlugIn {
 	private boolean growUpDown;
 	private boolean secondGrow;
 	private boolean stdGrow;
+	/*Region grow parameters*/
+	private double[] growLimits;
+	
     public void run(String arg) {
         ImagePlus imp = WindowManager.getCurrentImage();
         /*Check that an image was open*/
@@ -139,9 +142,9 @@ public class IJGrowerLBP implements PlugIn {
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
 				greySTD = 1.0*stDev;
-				r3d = new RegionGrow3D(image3D, segmentationMask, 0.12,lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
+				r3d = new RegionGrow3D(image3D, segmentationMask, growLimits[0],lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
 				segmentationMask = r3d.segmentationMask;
-				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,1.0,0,0);
+				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,growLimits[1],0,0);
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				newPixelNo = meanAndArea[1];
 				System.out.println("Pixels in Mask after "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
@@ -153,7 +156,7 @@ public class IJGrowerLBP implements PlugIn {
 			while (newPixelNo/oldPixelNo > 1.01){ /*Grow until less than 1% new pixels are added*/
 				oldPixelNo = newPixelNo;
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,2.0,0,0);
+				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,growLimits[2],0,0);
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				newPixelNo = meanAndArea[1];
 				System.out.println("Pixels in Mask after Sagittal "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
@@ -627,6 +630,9 @@ public class IJGrowerLBP implements PlugIn {
 		gd.addCheckbox("GrowUpDown", false);
 		gd.addCheckbox("SecondGrow", false);
 		gd.addCheckbox("StdGrow", false);		/*Use seed area 2*STDev as maxdiff*/
+		gd.addNumericField("LBPlimit", 0.12, 3);
+        gd.addNumericField("GreyLimit1", 1.0, 1);
+		gd.addNumericField("GreyLimit2", 2.0, 1);
 
         gd.showDialog();
 
@@ -643,6 +649,11 @@ public class IJGrowerLBP implements PlugIn {
 		growUpDown	= gd.getNextBoolean();
 		secondGrow	= gd.getNextBoolean();
 		stdGrow		= gd.getNextBoolean();
+		/*Get region grow parameters*/
+		growLimits = new double[3];
+		for (int i = 0; i<growLimits.length;++i){
+			growLimits[i] = gd.getNextNumber();
+		}
         return true;
     }
 	
