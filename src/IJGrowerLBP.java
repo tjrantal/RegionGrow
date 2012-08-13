@@ -64,6 +64,7 @@ public class IJGrowerLBP implements PlugIn {
 		/*Construct 3D image and 3D lbp memory stacks*/
         double [][][] image3D = new double[width][height][depth];
 		double[][][] lbp3D = new double[width][height][depth];	/*Initialized to zero by Java as default*/
+		double[][][] gradient3D = new double[width][height][depth];	/*Initialized to zero by Java as default*/
 		double[][] tempData;
 		short[] temp;
 		
@@ -79,7 +80,7 @@ public class IJGrowerLBP implements PlugIn {
 					tempData[c][r] = (double) temp[c+r*width];
 				}
 			}
-			Thread newThread = new MultiThreaderLBP(tempData,d);
+			Thread newThread = new MultiThreaderLBPandGradient(tempData,d);
 			newThread.start();
 			threads.add(newThread);
 
@@ -92,12 +93,14 @@ public class IJGrowerLBP implements PlugIn {
 			}catch(Exception er){}
 			
 			/*Copy the mask result to mask3D*/
-			int d = ((MultiThreaderLBP) threads.get(t)).d;
+			int d = ((MultiThreaderLBPandGradient) threads.get(t)).d;
 			IJ.log("Slice "+(d+1)+"/"+depth+" finished");
-			byte[][] lbpImage = ((MultiThreaderLBP) threads.get(t)).lbpImage;
+			byte[][] lbpImage = ((MultiThreaderLBPandGradient) threads.get(t)).lbpImage;
+			double[][] gradientImage = ((MultiThreaderLBPandGradient) threads.get(t)).gradientImage;
 			for (int r = 0;r<height;++r){
 				for (int c = 0;c<width;++c){
-					lbp3D[c][r][d]=(double) lbpImage[c][r];
+					lbp3D[c][r][d] =(double) lbpImage[c][r];
+					gradient3D[c][r][d] = gradientImage[c][r];
 				}
 			}
 		}

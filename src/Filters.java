@@ -11,6 +11,48 @@ import java.text.DecimalFormat;	/*For debugging*/
 
 public class Filters{
 	
+	public static double[][] getGradientImage(double[][] imagePixels){
+		int rows = imagePixels.length;
+		int columns = imagePixels[0].length;
+		double[][] gradientrows = new double[rows][columns];
+		double[][] gradientcolumns = new double[rows][columns];
+		double[][] gradientr = new double[rows][columns];
+		//Using sobel
+		//for gx convolutes the following matrix
+		//   
+		//     |-1 0 1|
+		//Gx = |-2 0 2|
+		//     |-1 0 1|
+		for(int i=1;i<rows-1;++i){
+			for(int j=1;j<columns-1;++j){
+				gradientrows[i][j] =
+				-1*(imagePixels[i-1][j-1]) +1*(imagePixels[i+1][j-1])
+				-2*(imagePixels[i-1][j]) +2*(imagePixels[i+1][j])
+				-1*(imagePixels[i-1][j+1]) +1*(imagePixels[i+1][j+1]);
+			}
+		}
+
+		//for gy convolutes the following matrix
+		//
+		//     |-1 -2 -1| 
+		//Gy = | 0  0  0|
+		//     |+1 +2 +1|
+		//
+		for(int i=1;i<rows-1;++i){
+			for(int j=1;j<columns-1;++j){
+				gradientcolumns[i][j] = 
+				-1*(imagePixels[i-1][j-1]) +1*(imagePixels[i-1][j+1])
+				-2*(imagePixels[i][j-1]) +2*(imagePixels[i][j+1])
+				-1*(imagePixels[i+1][j-1]) +1*(imagePixels[i+1][j+1]);
+			}
+		}
+		for(int i=1;i<rows-1;i++){
+			for(int j=1;j<columns-1;j++){
+				gradientr[i][j] = Math.sqrt(gradientrows[i][j]*gradientrows[i][j]+gradientcolumns[i][j]*gradientcolumns[i][j]);				
+			}
+		}
+		return gradientr;
+    }
 	
 	public static double[][] getVarianceImage(double[][] data, int radius){
 		int width = data.length;
