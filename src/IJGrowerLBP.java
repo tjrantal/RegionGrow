@@ -287,21 +287,23 @@ public class IJGrowerLBP implements PlugIn {
 		double[][] gradientData;
 		byte[][] sliceMask;
 		double stDev;
+		double greyLimit;
 		double diffLimitGradient = 0;
 		boolean maskHasPixels;
 		List threads = new ArrayList();
 		/*Get diffLimit*/
-		if (stdGrow){
+
 			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
-			diffLimit = stdMultiplier*stDev;
+			greyLimit = stdMultiplier*stDev;
 			double stDevGradient = RegionGrow.getStdev(segmentationMask, gradient3D,meanAndAreaGradient[0]);
 			diffLimitGradient = stdMultiplier*stDevGradient;
-		}
-		IJ.log("Mean "+meanAndArea[0]+" DiffLimit "+diffLimit);
+
+		IJ.log("Mean "+meanAndArea[0]+" GreyLimit "+greyLimit+" GMean "+meanAndAreaGradient[0]+" GLimit "+diffLimitGradient);
 		for (int d = 0; d < depth; ++d) {
 			/*Get the slice*/
 			sliceData = new double[width][height];
 			sliceMask = new byte[width][height];
+			gradientData= new double[width][height];
 			maskHasPixels =false;
 			for (int r = 0;r<height;++r){
 				for (int c = 0;c<width;++c){
@@ -315,8 +317,8 @@ public class IJGrowerLBP implements PlugIn {
 			}
 			/*Run the region growing*/
 			if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
-				RegionGrow2Dgradient rg = new RegionGrow2Dgradient(sliceData,gradientData,sliceMask,diffLimit,meanAndArea[0],diffLimitGradient,meanAndAreaGradient[0],(long) meanAndArea[1]);
-				Thread newThread = new MultiThreader(rg,d,preErodeReps,postErodeReps);
+				RegionGrow2Dgradient rg = new RegionGrow2Dgradient(sliceData,gradientData,sliceMask,diffLimit,greyLimit,meanAndArea[0],diffLimitGradient,meanAndAreaGradient[0],(long) meanAndArea[1]);
+				Thread newThread = new MultiThreaderGradient(rg,d,preErodeReps,postErodeReps);
 				newThread.start();
 				threads.add(newThread);
 			}
@@ -327,10 +329,10 @@ public class IJGrowerLBP implements PlugIn {
 				((Thread) threads.get(t)).join();
 			}catch(Exception er){}
 			/*Copy the mask result to mask3D*/
-			int d = ((MultiThreader) threads.get(t)).r;
+			int d = ((MultiThreaderGradient) threads.get(t)).r;
 			for (int r = 0;r<height;++r){
 				for (int c = 0;c<width;++c){
-					segmentationMask[c][r][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][r];
+					segmentationMask[c][r][d]=((MultiThreaderGradient) threads.get(t)).r2d.segmentationMask[c][r];
 				}
 			}
 		}
@@ -690,7 +692,7 @@ public class IJGrowerLBP implements PlugIn {
         gd.addNumericField("zLow", 8, 0);
 		gd.addNumericField("zHigh", 12, 0);
         gd.addMessage("Maximum difference");
-        gd.addNumericField("maxDiff", 100, 0);
+        gd.addNumericField("maxDiff", 5.0, 1);
 		gd.addCheckbox("3D", false);
 		gd.addCheckbox("GrowUpDown", false);
 		gd.addCheckbox("SecondGrow", false);

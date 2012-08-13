@@ -31,7 +31,7 @@ macro "LookStudyAnalysis"{
 	function analyseFile(sourceDir,file){
 			run("Image Sequence...", "open="+sourceDir+file+" number=19 starting=1 increment=1 scale=100 file=[] or=[] sort");
 			run("Median...", "radius=2 stack");
-			run("Seeded 3D Region Grow With LBP", "xlow=169 xhigh=250 ylow=370 yhigh=390 zlow=9 zhigh=12 maxdiff=150 secondgrow stdgrow lbplimit=0.12 greylimit1=1.5 greylimit2=1.9");
+			run("Seeded 3D Region Grow With LBP", "xlow=169 xhigh=250 ylow=370 yhigh=390 zlow=9 zhigh=12 maxdiff=5.0 secondgrow stdgrow lbplimit=0.12 greylimit1=1.5 greylimit2=1.9");
 			run("3D Viewer");
 			call("ij3d.ImageJ3DViewer.setCoordinateSystem", "false");
 			call("ij3d.ImageJ3DViewer.add", "Region", "White", "Region", "50", "true", "true", "true", "2", "2");
