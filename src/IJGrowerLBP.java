@@ -129,7 +129,7 @@ public class IJGrowerLBP implements PlugIn {
 		double[] lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
 		IJ.log("Starting LP grow");
 		segmentationMask = frontalPlaneSegmentationLBP(lbp3D,segmentationMask,0.11,lbp,lbpRadius,lbpModelHist,0,0);
-		double oldPixelNo = 1.0;;
+		double oldPixelNo = 1.0;
 		double newPixelNo = 2.0;
 		double[] meanAndArea;
 		double stDev;
@@ -147,7 +147,7 @@ public class IJGrowerLBP implements PlugIn {
 				greySTD = 1.0*stDev;
 				r3d = new RegionGrow3D(image3D, segmentationMask, growLimits[0],lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
 				segmentationMask = r3d.segmentationMask;
-				segmentationMask = frontalPlaneSegmentationTwo(image3D,gradient3D,segmentationMask,growLimits[1],0,0);
+				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,growLimits[1],0,0);
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				newPixelNo = meanAndArea[1];
 				System.out.println("Pixels in Mask after "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
@@ -155,16 +155,16 @@ public class IJGrowerLBP implements PlugIn {
 			
 			/*Sagittal grow to get close to bone borders...*/
 			oldPixelNo = 1;
-			/*
+			
 			while (newPixelNo/oldPixelNo > 1.01){ //Grow until less than 1% new pixels are added
 				oldPixelNo = newPixelNo;
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,growLimits[2],0,0);
+				segmentationMask = frontalPlaneSegmentationTwo(image3D,gradient3D,segmentationMask,growLimits[2],0,0);
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				newPixelNo = meanAndArea[1];
 				System.out.println("Pixels in Mask after Sagittal "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
 			}
-			*/
+			
 			
 		}
 		/*
