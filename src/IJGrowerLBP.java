@@ -147,7 +147,7 @@ public class IJGrowerLBP implements PlugIn {
 				greySTD = 1.0*stDev;
 				r3d = new RegionGrow3D(image3D, segmentationMask, growLimits[0],lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
 				segmentationMask = r3d.segmentationMask;
-				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,growLimits[1],0,0);
+				segmentationMask = frontalPlaneSegmentationTwo(image3D,gradient3D,segmentationMask,growLimits[1],0,0);
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				newPixelNo = meanAndArea[1];
 				System.out.println("Pixels in Mask after "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
@@ -155,8 +155,8 @@ public class IJGrowerLBP implements PlugIn {
 			
 			/*Sagittal grow to get close to bone borders...*/
 			oldPixelNo = 1;
-			
-			while (newPixelNo/oldPixelNo > 1.01){ /*Grow until less than 1% new pixels are added*/
+			/*
+			while (newPixelNo/oldPixelNo > 1.01){ //Grow until less than 1% new pixels are added
 				oldPixelNo = newPixelNo;
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,growLimits[2],0,0);
@@ -164,6 +164,7 @@ public class IJGrowerLBP implements PlugIn {
 				newPixelNo = meanAndArea[1];
 				System.out.println("Pixels in Mask after Sagittal "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
 			}
+			*/
 			
 		}
 		/*
@@ -274,6 +275,67 @@ public class IJGrowerLBP implements PlugIn {
 		return segmentationMask;
 	}
 	
+	/*Frontal plane analysis with gradientimag*/
+	
+	byte[][][] frontalPlaneSegmentationTwo(double[][][] image3D, double[][][] gradient3D,byte[][][] segmentationMask,double stdMultiplier,int preErodeReps, int postErodeReps){
+		int width = image3D.length;
+		int height = image3D[0].length;
+		int depth = image3D[0][0].length;
+		double[] meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+		double[] meanAndAreaGradient = RegionGrow.getCurrentMeanAndArea(segmentationMask, gradient3D);
+		double[][] sliceData;
+		double[][] gradientData;
+		byte[][] sliceMask;
+		double stDev;
+		double diffLimitGradient = 0;
+		boolean maskHasPixels;
+		List threads = new ArrayList();
+		/*Get diffLimit*/
+		if (stdGrow){
+			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
+			diffLimit = stdMultiplier*stDev;
+			double stDevGradient = RegionGrow.getStdev(segmentationMask, gradient3D,meanAndAreaGradient[0]);
+			diffLimitGradient = stdMultiplier*stDevGradient;
+		}
+		IJ.log("Mean "+meanAndArea[0]+" DiffLimit "+diffLimit);
+		for (int d = 0; d < depth; ++d) {
+			/*Get the slice*/
+			sliceData = new double[width][height];
+			sliceMask = new byte[width][height];
+			maskHasPixels =false;
+			for (int r = 0;r<height;++r){
+				for (int c = 0;c<width;++c){
+					sliceData[c][r] = image3D[c][r][d];
+					sliceMask[c][r] = segmentationMask[c][r][d];
+					gradientData[c][r] = gradient3D[c][r][d];
+					if (sliceMask[c][r] ==1){
+						maskHasPixels = true;
+					}
+				}
+			}
+			/*Run the region growing*/
+			if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
+				RegionGrow2Dgradient rg = new RegionGrow2Dgradient(sliceData,gradientData,sliceMask,diffLimit,meanAndArea[0],diffLimitGradient,meanAndAreaGradient[0],(long) meanAndArea[1]);
+				Thread newThread = new MultiThreader(rg,d,preErodeReps,postErodeReps);
+				newThread.start();
+				threads.add(newThread);
+			}
+		}
+		/*Wait for the threads to finish...*/
+		for (int t = 0; t<threads.size();++t){
+			try{
+				((Thread) threads.get(t)).join();
+			}catch(Exception er){}
+			/*Copy the mask result to mask3D*/
+			int d = ((MultiThreader) threads.get(t)).r;
+			for (int r = 0;r<height;++r){
+				for (int c = 0;c<width;++c){
+					segmentationMask[c][r][d]=((MultiThreader) threads.get(t)).r2d.segmentationMask[c][r];
+				}
+			}
+		}
+		return segmentationMask;
+	}
 	
 	/*Frontal plane analysis*/	
 	byte[][][] frontalPlaneSegmentation(double[][][] image3D, byte[][][] segmentationMask,double stdMultiplier,int preErodeReps, int postErodeReps){
