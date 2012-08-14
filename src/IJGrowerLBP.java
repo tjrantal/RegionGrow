@@ -296,7 +296,7 @@ public class IJGrowerLBP implements PlugIn {
 			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
 			greyLimit = stdMultiplier*stDev;
 			double stDevGradient = RegionGrow.getStdev(segmentationMask, gradient3D,meanAndAreaGradient[0]);
-			diffLimitGradient = stdMultiplier*stDevGradient;
+			diffLimitGradient = stDevGradient*2.0;//*stdMultiplier;
 
 		IJ.log("Mean "+meanAndArea[0]+" GreyLimit "+greyLimit+" GMean "+meanAndAreaGradient[0]+" GLimit "+diffLimitGradient);
 		for (int d = 0; d < depth; ++d) {
@@ -351,10 +351,10 @@ public class IJGrowerLBP implements PlugIn {
 		boolean maskHasPixels;
 		List threads = new ArrayList();
 		/*Get diffLimit*/
-		if (stdGrow){
+		
 			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
-			diffLimit = stdMultiplier*stDev;
-		}
+			double diffLimit = stdMultiplier*stDev;
+		
 		IJ.log("Mean "+meanAndArea[0]+" DiffLimit "+diffLimit);
 		for (int d = 0; d < depth; ++d) {
 			/*Get the slice*/
@@ -457,10 +457,10 @@ public class IJGrowerLBP implements PlugIn {
 		List threads = new ArrayList();
 		meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 		/*Get diffLimit*/
-		if (stdGrow){
+		
 			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
-			diffLimit = stdMultiplier*stDev;
-		}
+			double diffLimit = stdMultiplier*stDev;
+		
 		IJ.log("Mean "+meanAndArea[0]+" DiffLimit "+diffLimit);
 		/*Go through all of the slices*/
 		threads.clear();
@@ -516,10 +516,10 @@ public class IJGrowerLBP implements PlugIn {
 		List threads = new ArrayList();
 		meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 		/*Get diffLimit*/
-		if (stdGrow){
+		
 			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
-			diffLimit = stdMultiplier*stDev;
-		}
+			double diffLimit = stdMultiplier*stDev;
+		
 		IJ.log("Mean "+meanAndArea[0]+" DiffLimit "+diffLimit);
 		/*Go through all of the slices*/
 		threads.clear();
