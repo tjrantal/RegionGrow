@@ -274,6 +274,69 @@ public class IJGrowerLBP implements PlugIn {
 		}
 		return segmentationMask;
 	}
+
+	/*Frontal plane analysis with gradientimag*/
+	
+	byte[][][] frontalPlaneSegmentationThree(double[][][] image3D, double[][][] gradient3D,byte[][][] segmentationMask,double stdMultiplier,double gradientMultiplier){
+		int width = image3D.length;
+		int height = image3D[0].length;
+		int depth = image3D[0][0].length;
+		double[] meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+		double[] meanAndAreaGradient = RegionGrow.getCurrentMeanAndArea(segmentationMask, gradient3D);
+		double[][] sliceData;
+		double[][] gradientData;
+		byte[][] sliceMask;
+		double stDev;
+		double greyLimit;
+		double diffLimitGradient = 0;
+		boolean maskHasPixels;
+		List threads = new ArrayList();
+		/*Get diffLimit*/
+
+			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
+			greyLimit = stdMultiplier*stDev;
+			double stDevGradient = RegionGrow.getStdev(segmentationMask, gradient3D,meanAndAreaGradient[0]);
+			diffLimitGradient = stDevGradient*gradientMultiplier;//*stdMultiplier;
+
+		IJ.log("Mean "+meanAndArea[0]+" GreyLimit "+greyLimit+" GMean "+meanAndAreaGradient[0]+" GLimit "+diffLimitGradient);
+		for (int d = 0; d < depth; ++d) {
+			/*Get the slice*/
+			sliceData = new double[width][height];
+			sliceMask = new byte[width][height];
+			gradientData= new double[width][height];
+			maskHasPixels =false;
+			for (int r = 0;r<height;++r){
+				for (int c = 0;c<width;++c){
+					if (segmentationMask[c][r][d] ==1){
+						maskHasPixels = true;
+						break;
+					}
+				}
+				if(maskHasPixels){break;}
+			}
+			/*Run the region growing*/
+			if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
+				RegionGrow2D3DNeighbourhood rg = new RegionGrow2D3DNeighbourhood(image3D,gradient3D,segmentationMask,d,diffLimit,greyLimit,meanAndArea[0],diffLimitGradient,meanAndAreaGradient[0],(long) meanAndArea[1]);
+				Thread newThread = new MultiThreader3Dnh(rg,d);
+				newThread.start();
+				threads.add(newThread);
+			}
+		}
+		/*Wait for the threads to finish...*/
+		for (int t = 0; t<threads.size();++t){
+			try{
+				((Thread) threads.get(t)).join();
+			}catch(Exception er){}
+			/*Copy the mask result to mask3D*/
+			int d = ((MultiThreader3Dnh) threads.get(t)).r;
+			for (int r = 0;r<height;++r){
+				for (int c = 0;c<width;++c){
+					segmentationMask[c][r][d]=((MultiThreader3Dnh) threads.get(t)).r2d.segmentationMask[c][r][d];
+				}
+			}
+		}
+		return segmentationMask;
+	}
 	
 	/*Frontal plane analysis with gradientimag*/
 	
