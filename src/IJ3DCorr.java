@@ -79,31 +79,64 @@ public class IJ3DCorr implements PlugIn {
 		
 		IJ.log("Memory stacks done");
 		
-		double[][][] template3d = new double[120][140][9];
+		double[][] template2d = new double[120][140];
 		/*Create template cylinder...*/
 		double radius = 0;
-		for (int i = 0;i<template3d.length;++i){
+		for (int i = 0;i<template2d.length;++i){
 			for (int j = 0;j<120;++j){
-				for (int k = 0;k<template3d[i][j].length;++k){
-					radius = ((double) j)/120.0*25.0+25.0;
-					if (Math.sqrt((((double) i)-60.0)*(((double) i)-60.0)+((((double) k)-4)*13.1)*((((double) k)-4)*13.1)) < radius){
-						template3d[i][139-j][k] = 1;
-					}
+				radius = ((double) j)/120.0*25.0+25.0;
+				if (Math.sqrt((((double) i)-60.0)*(((double) i)-60.0)+(((double) i)-60.0)*(((double) i)-60.0)) < radius){
+					template2d[i][139-j] = 1;
 				}
 			}
 		}
 		
 		IJ.log("Template bone done");
 		
-		IJ.log("Starting 3D xcorr, might take a while");
-		double[][][] xcorrelation3d = Filters.xcorr(image3D,template3d);
+		IJ.log("Starting 2D xcorr, might take a while");
+		double[][][] xcorrelation3d = new double[image3D.length-template2d.length+1][image3D[0].length-template2d[0].length+1][depth];
+		
+		
+		double[][] tempData;
+		IJ.log("Start creating memory stacks");
+        /*Create threads for slices*/
+		List threads = new ArrayList();
+		for (int d = 0; d < depth; ++d) {
+			tempData = new double[width][height];
+			for (int r = 0;r<height;++r){
+				for (int c = 0;c<width;++c){
+					tempData[c][r] =  image3D[c][r][d];
+				}
+			}
+			Thread newThread = new MultiThreaderXCorr(tempData,template2d,d);
+			newThread.start();
+			threads.add(newThread);
+
+			IJ.log("Slice "+(d+1)+"/"+depth+" threading");
+        }
+		/*Catch the slice threads*/
+		for (int t = 0; t<threads.size();++t){
+			try{
+				((Thread) threads.get(t)).join();
+			}catch(Exception er){}
+			
+			/*Copy the mask result to mask3D*/
+			int d = ((MultiThreaderXCorr) threads.get(t)).d;
+			IJ.log("Slice "+(d+1)+"/"+depth+" finished");
+			double[][] xcorrImage = ((MultiThreaderXCorr) threads.get(t)).xcorr;
+			for (int r = 0;r<xcorrImage[0].length;++r){
+				for (int c = 0;c<xcorrImage.length;++c){
+					xcorrelation3d[c][r][d] =xcorrImage[c][r];
+				}
+			}
+		}
+		
+		
+
 		IJ.log("3D xcorr done");
 		Calibration calibration = imp.getCalibration();
 		double[] vRange = {imp.getDisplayRangeMin(),imp.getDisplayRangeMax()};
 		//Visualize segmentation on the original image
-		
-		ImagePlus resultStack = createTemplateStack(template3d, calibration);
-		resultStack.show();
 		
 		ImagePlus xcorrelationStack = createXCorrStack(xcorrelation3d, calibration);
 		xcorrelationStack.show();
