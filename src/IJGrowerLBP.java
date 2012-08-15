@@ -159,7 +159,7 @@ public class IJGrowerLBP implements PlugIn {
 			while (newPixelNo/oldPixelNo > 1.01){ //Grow until less than 1% new pixels are added
 				oldPixelNo = newPixelNo;
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-				segmentationMask = frontalPlaneSegmentationTwo(image3D,gradient3D,segmentationMask,growLimits[2],0,0);
+				segmentationMask = frontalPlaneSegmentationTwo(image3D,gradient3D,segmentationMask,growLimits[2],growLimits[3],0,0);
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				newPixelNo = meanAndArea[1];
 				System.out.println("Pixels in Mask after Sagittal "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
@@ -277,7 +277,7 @@ public class IJGrowerLBP implements PlugIn {
 	
 	/*Frontal plane analysis with gradientimag*/
 	
-	byte[][][] frontalPlaneSegmentationTwo(double[][][] image3D, double[][][] gradient3D,byte[][][] segmentationMask,double stdMultiplier,int preErodeReps, int postErodeReps){
+	byte[][][] frontalPlaneSegmentationTwo(double[][][] image3D, double[][][] gradient3D,byte[][][] segmentationMask,double stdMultiplier,double gradientMultiplier,int preErodeReps, int postErodeReps){
 		int width = image3D.length;
 		int height = image3D[0].length;
 		int depth = image3D[0][0].length;
@@ -296,7 +296,7 @@ public class IJGrowerLBP implements PlugIn {
 			stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
 			greyLimit = stdMultiplier*stDev;
 			double stDevGradient = RegionGrow.getStdev(segmentationMask, gradient3D,meanAndAreaGradient[0]);
-			diffLimitGradient = stDevGradient*2.0;//*stdMultiplier;
+			diffLimitGradient = stDevGradient*gradientMultiplier;//*stdMultiplier;
 
 		IJ.log("Mean "+meanAndArea[0]+" GreyLimit "+greyLimit+" GMean "+meanAndAreaGradient[0]+" GLimit "+diffLimitGradient);
 		for (int d = 0; d < depth; ++d) {
@@ -700,6 +700,7 @@ public class IJGrowerLBP implements PlugIn {
 		gd.addNumericField("LBPlimit", 0.12, 3);
         gd.addNumericField("GreyLimit1", 1.0, 1);
 		gd.addNumericField("GreyLimit2", 2.0, 1);
+		gd.addNumericField("GradientLimit", 2.0, 1);
 
         gd.showDialog();
 
@@ -717,7 +718,7 @@ public class IJGrowerLBP implements PlugIn {
 		secondGrow	= gd.getNextBoolean();
 		stdGrow		= gd.getNextBoolean();
 		/*Get region grow parameters*/
-		growLimits = new double[3];
+		growLimits = new double[4];
 		for (int i = 0; i<growLimits.length;++i){
 			growLimits[i] = gd.getNextNumber();
 		}

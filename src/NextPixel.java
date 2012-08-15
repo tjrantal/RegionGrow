@@ -8,8 +8,14 @@ package ijGrower;
 public class NextPixel implements Comparable<NextPixel> {
 	public int[] coordinates;
 	public double cost;
+	public double gradientCost;
 	public NextPixel(double cost, int[] coordinates){
 		this.cost =cost;
+		this.coordinates = coordinates;
+	}
+	public NextPixel(double cost,double gradientCost, int[] coordinates){
+		this.cost =cost;
+		this.gradientCost = gradientCost;
 		this.coordinates = coordinates;
 	}
 

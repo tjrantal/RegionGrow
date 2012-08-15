@@ -59,12 +59,13 @@ public class RegionGrow2Dgradient extends RegionGrow{
 		int[][] seedIndices = find(segmentationMask);
 		if (seedIndices == null){return false;}
 		double cost;
+		double gradientCost;
 		for (int i = 0; i<seedIndices.length; ++i){
 			int[] coordinates = {seedIndices[i][0],seedIndices[i][1]};
-			cost = 0;
-			cost +=Math.abs(dataSlice[seedIndices[i][0]][seedIndices[i][1]]-currentMean)/greyDiff;
-			cost +=Math.abs(gradientSlice[seedIndices[i][0]][seedIndices[i][1]]-gradientMean)/gradientDiff;
-			pixelQueue.add(new NextPixel(cost,coordinates));
+			cost =Math.abs(dataSlice[seedIndices[i][0]][seedIndices[i][1]]-currentMean)/greyDiff;
+			//cost +=Math.abs(gradientSlice[seedIndices[i][0]][seedIndices[i][1]]-gradientMean)/gradientDiff;
+			gradientCost = Math.abs(gradientSlice[seedIndices[i][0]][seedIndices[i][1]]-gradientMean)/gradientDiff;
+			pixelQueue.add(new NextPixel(cost,gradientCost,coordinates));
 		}
 		
 		/*Grow Region*/
@@ -80,7 +81,7 @@ public class RegionGrow2Dgradient extends RegionGrow{
 			/*	Add 4-connected neighbourhood to the  queue, unless the
 			neighbourhood pixels have already been visited or are part of the
 			mask already		*/
-			if (nextPixel.cost <= maxDiff){    //If cost is still less than maxDiff
+			if (nextPixel.gradientCost<=1.0 && nextPixel.cost <= 1.0){    //If cost is still less than maxDiff
 				//System.out.println("NCost "+nextPixel.cost+" MaxDiff "+maxDiff);
 				coordinates = nextPixel.coordinates;
 				//System.out.println("r "+coordinates[0]+" c "+coordinates[1]);
@@ -120,15 +121,16 @@ public class RegionGrow2Dgradient extends RegionGrow{
 	protected void checkNeighbours(int[][] neighbourhood){
 		int[] coordinates;
 		double cost;
+		double gradientCost;
         for (int r = 0;r<neighbourhood.length;++r){
 			coordinates = neighbourhood[r];
             if (coordinates[0] >= 0 && coordinates[0] < columnCount && coordinates[1] >=0 && coordinates[1] < rowCount){ //If the neigbour is within the image...
                if (visited[coordinates[0]][coordinates[1]] == (byte) 0 && segmentationMask[coordinates[0]][coordinates[1]] == 0){
 					int[] queueCoordinates = {coordinates[0],coordinates[1]};
-					cost = 0;
-					cost +=Math.abs(dataSlice[coordinates[0]][coordinates[1]]-currentMean)/greyDiff;
-					cost +=Math.abs(gradientSlice[coordinates[0]][coordinates[1]]-gradientMean)/gradientDiff;
-					pixelQueue.add(new NextPixel(cost,queueCoordinates));
+					cost =Math.abs(dataSlice[coordinates[0]][coordinates[1]]-currentMean)/greyDiff;
+					//cost +=Math.abs(gradientSlice[coordinates[0]][coordinates[1]]-gradientMean)/gradientDiff;
+					gradientCost = Math.abs(gradientSlice[coordinates[0]][coordinates[1]]-gradientMean)/gradientDiff;
+					pixelQueue.add(new NextPixel(cost,gradientCost,queueCoordinates));
                }
             }
         }
