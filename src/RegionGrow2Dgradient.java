@@ -75,14 +75,15 @@ public class RegionGrow2Dgradient extends RegionGrow{
 		while (pixelQueue.size() > 0){ //Go through all cells in queue
 			nextPixel  = pixelQueue.poll();	/*Get the pixel with the lowest cost and remove it from the queue*/
 			/*In case the pixel has been visited subsequent to having been added*/
-			while (visited[nextPixel.coordinates[0]][nextPixel.coordinates[1]] == 1 && pixelQueue.size() > 0){
+			while ((visited[nextPixel.coordinates[0]][nextPixel.coordinates[1]] == 1 || nextPixel.gradientCost>1.0) && pixelQueue.size() > 0){
 				nextPixel  = pixelQueue.poll();	/*Get the pixel with the lowest cost and remove it from the queue*/
 			}
 			/*	Add 4-connected neighbourhood to the  queue, unless the
 			neighbourhood pixels have already been visited or are part of the
 			mask already		*/
+			//System.out.println("Bef cost "+nextPixel.cost+" gCost "+nextPixel.gradientCost);
 			if (nextPixel.gradientCost<=1.0 && nextPixel.cost <= 1.0){    //If cost is still less than maxDiff
-				//System.out.println("NCost "+nextPixel.cost+" MaxDiff "+maxDiff);
+				//System.out.println("cost "+nextPixel.cost+" gCost "+nextPixel.gradientCost);
 				coordinates = nextPixel.coordinates;
 				//System.out.println("r "+coordinates[0]+" c "+coordinates[1]);
 				visited[coordinates[0]][coordinates[1]] = (byte) 1;
