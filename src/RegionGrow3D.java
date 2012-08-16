@@ -78,10 +78,10 @@ public class RegionGrow3D extends RegionGrow{
 		depthCount	= dataSlice[0][0].length;
 		visited		= new byte[columnCount][rowCount][depthCount];
 			
-		System.out.println("Start Init");
+		//System.out.println("Start Init");
 		/*Init pixelQueue*/
 		int[][] seedIndices = find(segmentationMask);
-		IJ.log("Number of seed points "+seedIndices.length);
+		//IJ.log("Number of seed points "+seedIndices.length);
 		double[] lbpHist;
  		for (int i = 0; i<seedIndices.length; ++i){
 			if (seedIndices[i][0] >= lbpBlockRadius && seedIndices[i][0] < columnCount-lbpBlockRadius && 
@@ -93,7 +93,7 @@ public class RegionGrow3D extends RegionGrow{
 				pixelQueue.add(new NextPixel(1.0-lbp.checkClose(lbpHist,lbpModelHist),coordinates));
 			}
 		}
-		IJ.log("Seed set "+seedIndices.length);
+		//IJ.log("Seed set "+seedIndices.length);
 		/*Grow Region*/
 		NextPixel nextPixel;
 		long maskArea = seedIndices.length;
@@ -142,7 +142,7 @@ public class RegionGrow3D extends RegionGrow{
 				//System.out.println("Qlength "+pixelQueue.size()+" mean "+currentMean+" alt Mean "+currentMean2+" area "+maskArea);
 				checkNeighboursLBP(neighbourhood);
 			}else{ //First pixel with higher than maxDiff cost or run out of pixels
-				System.out.println("Break");
+				//System.out.println("Break");
 				break;
 			}
         

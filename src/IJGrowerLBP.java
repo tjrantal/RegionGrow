@@ -153,14 +153,14 @@ public class IJGrowerLBP implements PlugIn {
 				greySTD = 1.0*stDev;
 				r3d = new RegionGrow3D(image3D, segmentationMask, growLimits[0],lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
 				segmentationMask = r3d.segmentationMask;
-				segmentationMask = frontalPlaneSegmentationThree(image3D,gradient3D,segmentationMask,growLimits[2],growLimits[3]);
+				segmentationMask = frontalPlaneSegmentationThree(image3D,gradient3D,segmentationMask,growLimits[1],growLimits[3]);
 				//segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,growLimits[1],0,0);
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				newPixelNo = meanAndArea[1];
 				System.out.println("Pixels in Mask after "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
 			}
 			
-			/*
+			
 			//Sagittal grow to get close to bone borders...
 			oldPixelNo = 1;
 			IJ.log("Into frontal plane three");
@@ -172,7 +172,7 @@ public class IJGrowerLBP implements PlugIn {
 				newPixelNo = meanAndArea[1];
 				System.out.println("Pixels in Mask after Sagittal "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
 			}
-			*/
+			
 			
 		}
 		
