@@ -131,25 +131,13 @@ public class RegionGrow2D3DNeighbourhood extends RegionGrow{
 					//currentMean = getCurrentMean();  //The mean may be updated to include the new pixel. Might work just as well without update with several seeds...
 				}
 				
-				
-				
 				//Check 4-connected neighbour
-				neighbourhood[0][0] = coordinates[0]-1;	/*Left one*/
-				neighbourhood[1][0] = coordinates[0]+1;	/*Right one*/
-				neighbourhood[2][0] = coordinates[0];
-				neighbourhood[3][0] = coordinates[0];
-				
-				neighbourhood[0][1] = coordinates[1];
-				neighbourhood[1][1] = coordinates[1];
-				neighbourhood[2][1] = coordinates[1]-1;	/*Up one*/
-				neighbourhood[3][1] = coordinates[1]+1;	/*Down one*/
-			
-				
-
 				for (int r = 0;r<neighbourhood.length;++r){
 					coordinateToCheck[0] =  coordinates[0]+neighbourhood[r][0];
 					coordinateToCheck[1] =  coordinates[1]+neighbourhood[r][1];
+					//System.out.println("r "+r+" tc0 "+coordinateToCheck[0]+" tc1 "+coordinateToCheck[1]);
 					if (coordinateToCheck[0] >= 0 && coordinateToCheck[0] < columnCount && coordinateToCheck[1] >=0 && coordinateToCheck[1] < rowCount){ //If the neigbour is within the image...
+						//System.out.println("vis "+visited[coordinateToCheck[0]][coordinateToCheck[1]]+" segm "+segmentationMask[coordinateToCheck[0]][coordinateToCheck[1]][slice]);
 					   if (visited[coordinateToCheck[0]][coordinateToCheck[1]] == (byte) 0 && segmentationMask[coordinateToCheck[0]][coordinateToCheck[1]][slice] == 0){
 							/*Check the horizonal plane*/
 							horizontalNeighbourhood = 0;
@@ -161,6 +149,7 @@ public class RegionGrow2D3DNeighbourhood extends RegionGrow{
 									}
 								}
 							}
+							//System.out.println("Hor "+horizontalNeighbourhood);
 							if (horizontalNeighbourhood > 5){					   
 								int[] queueCoordinates = {coordinateToCheck[0],coordinateToCheck[1]};
 								cost =Math.abs(dataSlice[coordinateToCheck[0]][coordinateToCheck[1]][slice]-currentMean)/greyDiff;

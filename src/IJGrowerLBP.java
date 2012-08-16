@@ -122,6 +122,12 @@ public class IJGrowerLBP implements PlugIn {
 			}
         }
 		
+		double[] meanAndArea;
+		
+
+		
+		
+		
 		//Test LBP Grow
 		//Get LBP model histogram
 		LBP lbp = new LBP(16,2);
@@ -129,17 +135,17 @@ public class IJGrowerLBP implements PlugIn {
 		double[] lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
 		IJ.log("Starting LP grow");
 		segmentationMask = frontalPlaneSegmentationLBP(lbp3D,segmentationMask,0.11,lbp,lbpRadius,lbpModelHist,0,0);
-		double oldPixelNo = 1.0;
-		double newPixelNo = 2.0;
-		double[] meanAndArea;
+		
+		
 		double stDev;
 		double greySTD;
 		meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-		
+		double oldPixelNo = 1.0;
+		double newPixelNo = meanAndArea[1];
 		if (secondGrow){
 			RegionGrow3D r3d;
-			/*3D grow to cover the whole bone*/
-			while (newPixelNo/oldPixelNo > 1.01){ /*Grow until less than 1% new pixels are added*/
+			//3D grow to cover the whole bone
+			while (newPixelNo/oldPixelNo > 1.01){ //Grow until less than 1% new pixels are added
 				oldPixelNo = newPixelNo;
 				lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
@@ -147,52 +153,32 @@ public class IJGrowerLBP implements PlugIn {
 				greySTD = 1.0*stDev;
 				r3d = new RegionGrow3D(image3D, segmentationMask, growLimits[0],lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
 				segmentationMask = r3d.segmentationMask;
-				segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,growLimits[1],0,0);
+				segmentationMask = frontalPlaneSegmentationThree(image3D,gradient3D,segmentationMask,growLimits[2],growLimits[3]);
+				//segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,growLimits[1],0,0);
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				newPixelNo = meanAndArea[1];
 				System.out.println("Pixels in Mask after "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
 			}
 			
-			/*Sagittal grow to get close to bone borders...*/
+			/*
+			//Sagittal grow to get close to bone borders...
 			oldPixelNo = 1;
-			
+			IJ.log("Into frontal plane three");
 			while (newPixelNo/oldPixelNo > 1.01){ //Grow until less than 1% new pixels are added
 				oldPixelNo = newPixelNo;
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-				segmentationMask = frontalPlaneSegmentationTwo(image3D,gradient3D,segmentationMask,growLimits[2],growLimits[3],0,0);
+				segmentationMask = frontalPlaneSegmentationThree(image3D,gradient3D,segmentationMask,growLimits[2],growLimits[3]);
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				newPixelNo = meanAndArea[1];
 				System.out.println("Pixels in Mask after Sagittal "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
 			}
-			
+			*/
 			
 		}
-		/*
 		
-		//Grow seed mask...
 		
-		segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,2.0,0,2*lbpRadius);
-		//Get LBP model histogram
-		LBP lbp = new LBP(16,2);
-		double[] lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
-		//Grow stack
-		IJ.log("Starting 3D");
-			
-		double[] meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-		double stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
-		double greySTD = 2.0*stDev;
 		
-		RegionGrow3D r3d = new RegionGrow3D(image3D, segmentationMask, 0.15,lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
-		segmentationMask = r3d.segmentationMask;
-		r3d = null;
-		System.gc();
-		IJ.log("3D done");
-		///Grow once more in frontal plane...
-		if (secondGrow){
-			System.gc();
-			segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,4.5,2,0);
-		}
-		*/
+
 
 		//Dump out the results
 		/*
@@ -314,6 +300,7 @@ public class IJGrowerLBP implements PlugIn {
 				}
 				if(maskHasPixels){break;}
 			}
+			//IJ.log("MaskHasPixels "+maskHasPixels+" "+d);
 			/*Run the region growing*/
 			if (maskHasPixels){ /*Do the remaining steps only if a pixel existed within the slice...*/
 				RegionGrow2D3DNeighbourhood rg = new RegionGrow2D3DNeighbourhood(image3D,gradient3D,segmentationMask,d,diffLimit,greyLimit,meanAndArea[0],diffLimitGradient,meanAndAreaGradient[0],(long) meanAndArea[1]);
@@ -329,6 +316,7 @@ public class IJGrowerLBP implements PlugIn {
 			}catch(Exception er){}
 			/*Copy the mask result to mask3D*/
 			int d = ((MultiThreader3Dnh) threads.get(t)).r;
+			//IJ.log("Caught slice "+d);
 			for (int r = 0;r<height;++r){
 				for (int c = 0;c<width;++c){
 					segmentationMask[c][r][d]=((MultiThreader3Dnh) threads.get(t)).r2d.segmentationMask[c][r][d];
