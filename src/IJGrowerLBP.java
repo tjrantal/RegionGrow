@@ -31,7 +31,10 @@ public class IJGrowerLBP implements PlugIn {
 	private boolean secondGrow;
 	private boolean stdGrow;
 	/*Region grow parameters*/
-	private double[] growLimits;
+	private double[] lbpLimits;
+	private double[] greyLimits;
+	private double[] gradientLimits;
+	
 	
     public void run(String arg) {
         ImagePlus imp = WindowManager.getCurrentImage();
@@ -84,7 +87,7 @@ public class IJGrowerLBP implements PlugIn {
 			newThread.start();
 			threads.add(newThread);
 
-			IJ.log("Slice "+(d+1)+"/"+depth+" threading");
+			//IJ.log("Slice "+(d+1)+"/"+depth+" threading");
         }
 		/*Catch the slice threads*/
 		for (int t = 0; t<threads.size();++t){
@@ -94,7 +97,7 @@ public class IJGrowerLBP implements PlugIn {
 			
 			/*Copy the mask result to mask3D*/
 			int d = ((MultiThreaderLBPandGradient) threads.get(t)).d;
-			IJ.log("Slice "+(d+1)+"/"+depth+" finished");
+			//IJ.log("Slice "+(d+1)+"/"+depth+" finished");
 			byte[][] lbpImage = ((MultiThreaderLBPandGradient) threads.get(t)).lbpImage;
 			double[][] gradientImage = ((MultiThreaderLBPandGradient) threads.get(t)).gradientImage;
 			for (int r = 0;r<height;++r){
@@ -134,7 +137,7 @@ public class IJGrowerLBP implements PlugIn {
 		int lbpRadius = 7;
 		double[] lbpModelHist = lbp.histc(LBP.reshape(lbp3D,segmentationMask));
 		IJ.log("Starting LP grow");
-		segmentationMask = frontalPlaneSegmentationLBP(lbp3D,segmentationMask,0.11,lbp,lbpRadius,lbpModelHist,0,0);
+		segmentationMask = frontalPlaneSegmentationLBP(lbp3D,segmentationMask,lbpLimits[0],lbp,lbpRadius,lbpModelHist,0,0);
 		
 		
 		double stDev;
@@ -151,9 +154,9 @@ public class IJGrowerLBP implements PlugIn {
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				stDev = RegionGrow.getStdev(segmentationMask, image3D,meanAndArea[0]);
 				greySTD = 1.0*stDev;
-				r3d = new RegionGrow3D(image3D, segmentationMask, growLimits[0],lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
+				r3d = new RegionGrow3D(image3D, segmentationMask, lbpLimits[1],lbp3D,lbp,lbpRadius,lbpModelHist,meanAndArea[0],greySTD);
 				segmentationMask = r3d.segmentationMask;
-				segmentationMask = frontalPlaneSegmentationThree(image3D,gradient3D,segmentationMask,growLimits[1],growLimits[3]);
+				segmentationMask = frontalPlaneSegmentationThree(image3D,gradient3D,segmentationMask,greyLimits[0],gradientLimits[0]);
 				//segmentationMask = frontalPlaneSegmentation(image3D,segmentationMask,growLimits[1],0,0);
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				newPixelNo = meanAndArea[1];
@@ -167,7 +170,7 @@ public class IJGrowerLBP implements PlugIn {
 			while (newPixelNo/oldPixelNo > 1.01){ //Grow until less than 1% new pixels are added
 				oldPixelNo = newPixelNo;
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
-				segmentationMask = frontalPlaneSegmentationThree(image3D,gradient3D,segmentationMask,growLimits[2],growLimits[3]);
+				segmentationMask = frontalPlaneSegmentationThree(image3D,gradient3D,segmentationMask,greyLimits[1],gradientLimits[1]);
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				newPixelNo = meanAndArea[1];
 				System.out.println("Pixels in Mask after Sagittal "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
@@ -748,10 +751,14 @@ public class IJGrowerLBP implements PlugIn {
 		gd.addCheckbox("GrowUpDown", false);
 		gd.addCheckbox("SecondGrow", false);
 		gd.addCheckbox("StdGrow", false);		/*Use seed area 2*STDev as maxdiff*/
-		gd.addNumericField("LBPlimit", 0.12, 3);
+		gd.addNumericField("LBPlimit1", 0.11, 3);
+		gd.addNumericField("LBPlimit2", 0.12, 3);
         gd.addNumericField("GreyLimit1", 1.0, 1);
 		gd.addNumericField("GreyLimit2", 2.0, 1);
-		gd.addNumericField("GradientLimit", 2.0, 1);
+		gd.addNumericField("GreyLimit3", 2.0, 1);
+		gd.addNumericField("GradientLimit", 1.5, 1);
+		gd.addNumericField("GradientLimit2", 1.5, 1);
+		gd.addNumericField("GradientLimit3", 1.5, 1);
 
         gd.showDialog();
 
@@ -769,9 +776,17 @@ public class IJGrowerLBP implements PlugIn {
 		secondGrow	= gd.getNextBoolean();
 		stdGrow		= gd.getNextBoolean();
 		/*Get region grow parameters*/
-		growLimits = new double[4];
-		for (int i = 0; i<growLimits.length;++i){
-			growLimits[i] = gd.getNextNumber();
+		lbpLimits = new double[2];
+		for (int i = 0; i<lbpLimits.length;++i){
+			lbpLimits[i] = gd.getNextNumber();
+		}
+		greyLimits = new double[3];
+		for (int i = 0; i<greyLimits.length;++i){
+			greyLimits[i] = gd.getNextNumber();
+		}
+		gradientLimits = new double[3];
+		for (int i = 0; i<gradientLimits.length;++i){
+			gradientLimits[i] = gd.getNextNumber();
 		}
         return true;
     }

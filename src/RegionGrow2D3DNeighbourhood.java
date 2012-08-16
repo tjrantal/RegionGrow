@@ -19,7 +19,7 @@ public class RegionGrow2D3DNeighbourhood extends RegionGrow{
 	protected double greyDiff;
 	protected double gradientDiff;
 	protected double gradientMean;
-	
+	protected int neighbourLimit = 11;
 	/*Global variables, saves effort in declaring functions...*/
 	protected byte[][] visited;
 	
@@ -52,8 +52,8 @@ public class RegionGrow2D3DNeighbourhood extends RegionGrow{
 		if (seedIndices == null){return false;}
 		double cost;
 		double gradientCost;
-		int[][] costNeighbourhood = new int[9][3];
-						//Check coronal plane neighbours
+		int[][] costNeighbourhood = new int[15][3];
+						//Check coronal and frontal plane neighbours
 				costNeighbourhood[0][0] = -1;	/*Left one*/
 				costNeighbourhood[1][0] = 0;
 				costNeighbourhood[2][0] = +1;	/*Right one*/
@@ -63,6 +63,12 @@ public class RegionGrow2D3DNeighbourhood extends RegionGrow{
 				costNeighbourhood[6][0] = -1;	/*Left one*/
 				costNeighbourhood[7][0] = 0;
 				costNeighbourhood[8][0] = +1;	/*Right one*/
+				costNeighbourhood[9][0] = -1;	/*Left one*/
+				costNeighbourhood[10][0] = 0;
+				costNeighbourhood[11][0] = +1;	/*Right one*/
+				costNeighbourhood[12][0] = -1;	/*Left one*/
+				costNeighbourhood[13][0] = 0;
+				costNeighbourhood[14][0] = +1;	/*Right one*/
 				
 				costNeighbourhood[0][1] = 0;
 				costNeighbourhood[1][1] = 0;
@@ -73,6 +79,12 @@ public class RegionGrow2D3DNeighbourhood extends RegionGrow{
 				costNeighbourhood[6][1] = 0;
 				costNeighbourhood[7][1] = 0;
 				costNeighbourhood[8][1] = 0;
+				costNeighbourhood[9][1] = -1;	/*Up one*/
+				costNeighbourhood[10][1] = -1;	/*Up one*/
+				costNeighbourhood[11][1] = -1;	/*Up one*/
+				costNeighbourhood[12][1] = +1;	/*Down one*/
+				costNeighbourhood[13][1] = +1;	/*Down one*/
+				costNeighbourhood[14][1] = +1;	/*Down one*/
 
 
 				costNeighbourhood[0][2] = -1;	/*Closer one*/	
@@ -84,6 +96,12 @@ public class RegionGrow2D3DNeighbourhood extends RegionGrow{
 				costNeighbourhood[6][2] = +1;	/*Further one*/
 				costNeighbourhood[7][2] = +1;	/*Further one*/
 				costNeighbourhood[8][2] = +1;	/*Further one*/
+				costNeighbourhood[9][2] = 0;
+				costNeighbourhood[10][2] = 0;	
+				costNeighbourhood[11][2] = 0;	
+				costNeighbourhood[12][2] = 0;
+				costNeighbourhood[13][2] = 0;	
+				costNeighbourhood[14][2] = 0;	
 		
 		for (int i = 0; i<seedIndices.length; ++i){
 			int[] coordinates = {seedIndices[i][0],seedIndices[i][1]};
@@ -143,14 +161,17 @@ public class RegionGrow2D3DNeighbourhood extends RegionGrow{
 							horizontalNeighbourhood = 0;
 							for (int h = 0; h< costNeighbourhood.length;++h){
 								if (coordinateToCheck[0]+costNeighbourhood[h][0] >= 0 && coordinateToCheck[0]+costNeighbourhood[h][0] < columnCount && coordinateToCheck[1]+costNeighbourhood[h][1] >=0 && coordinateToCheck[1]+costNeighbourhood[h][1] < rowCount && slice+costNeighbourhood[h][2] >=0 && slice+costNeighbourhood[h][2] < depth){ //If the neigbour is within the image...
-									if(Math.abs(dataSlice[coordinateToCheck[0]+costNeighbourhood[h][0]][coordinateToCheck[1]+costNeighbourhood[h][1]][slice+costNeighbourhood[h][2]]-currentMean)/greyDiff <= 1.0){
+									//Check whether the neighbour is acceptable voxel
+									if(Math.abs(dataSlice[coordinateToCheck[0]+costNeighbourhood[h][0]][coordinateToCheck[1]+costNeighbourhood[h][1]][slice+costNeighbourhood[h][2]]-currentMean)/greyDiff <= 1.0 && 
+									Math.abs(gradientSlice[coordinateToCheck[0]+costNeighbourhood[h][0]][coordinateToCheck[1]+costNeighbourhood[h][1]][slice+costNeighbourhood[h][2]]-gradientMean)/gradientDiff <= 1.0
+									){
 										++horizontalNeighbourhood;
-										if (horizontalNeighbourhood > 5){break;}
+										if (horizontalNeighbourhood > neighbourLimit){break;}
 									}
 								}
 							}
 							//System.out.println("Hor "+horizontalNeighbourhood);
-							if (horizontalNeighbourhood > 5){					   
+							if (horizontalNeighbourhood > neighbourLimit){					   
 								int[] queueCoordinates = {coordinateToCheck[0],coordinateToCheck[1]};
 								cost =Math.abs(dataSlice[coordinateToCheck[0]][coordinateToCheck[1]][slice]-currentMean)/greyDiff;
 								//cost +=Math.abs(gradientSlice[coordinates[0]][coordinates[1]]-gradientMean)/gradientDiff;
