@@ -19,7 +19,7 @@ public class RegionGrow2D3DNeighbourhood extends RegionGrow{
 	protected double greyDiff;
 	protected double gradientDiff;
 	protected double gradientMean;
-	protected int neighbourLimit = 11;
+	protected int neighbourLimit = 8;
 	/*Global variables, saves effort in declaring functions...*/
 	protected byte[][] visited;
 	
@@ -159,6 +159,8 @@ public class RegionGrow2D3DNeighbourhood extends RegionGrow{
 					   if (visited[coordinateToCheck[0]][coordinateToCheck[1]] == (byte) 0 && segmentationMask[coordinateToCheck[0]][coordinateToCheck[1]][slice] == 0){
 							/*Check the horizonal plane*/
 							horizontalNeighbourhood = 0;
+							cost = 0;
+							gradientCost = 0;
 							for (int h = 0; h< costNeighbourhood.length;++h){
 								if (coordinateToCheck[0]+costNeighbourhood[h][0] >= 0 && coordinateToCheck[0]+costNeighbourhood[h][0] < columnCount && coordinateToCheck[1]+costNeighbourhood[h][1] >=0 && coordinateToCheck[1]+costNeighbourhood[h][1] < rowCount && slice+costNeighbourhood[h][2] >=0 && slice+costNeighbourhood[h][2] < depth){ //If the neigbour is within the image...
 									//Check whether the neighbour is acceptable voxel
@@ -166,16 +168,19 @@ public class RegionGrow2D3DNeighbourhood extends RegionGrow{
 									Math.abs(gradientSlice[coordinateToCheck[0]+costNeighbourhood[h][0]][coordinateToCheck[1]+costNeighbourhood[h][1]][slice+costNeighbourhood[h][2]]-gradientMean)/gradientDiff <= 1.0
 									){
 										++horizontalNeighbourhood;
-										if (horizontalNeighbourhood > neighbourLimit){break;}
+										cost +=Math.abs(dataSlice[coordinateToCheck[0]+costNeighbourhood[h][0]][coordinateToCheck[1]+costNeighbourhood[h][1]][slice+costNeighbourhood[h][2]]-currentMean)/greyDiff;
+										gradientCost+= Math.abs(gradientSlice[coordinateToCheck[0]+costNeighbourhood[h][0]][coordinateToCheck[1]+costNeighbourhood[h][1]][slice+costNeighbourhood[h][2]]-gradientMean)/gradientDiff;
+										//if (horizontalNeighbourhood > neighbourLimit){break;}
 									}
 								}
 							}
 							//System.out.println("Hor "+horizontalNeighbourhood);
 							if (horizontalNeighbourhood > neighbourLimit){					   
 								int[] queueCoordinates = {coordinateToCheck[0],coordinateToCheck[1]};
-								cost =Math.abs(dataSlice[coordinateToCheck[0]][coordinateToCheck[1]][slice]-currentMean)/greyDiff;
+								cost /=((double) horizontalNeighbourhood); /*Weigh pixelneighbourhood with more included neighbours more...*/
 								//cost +=Math.abs(gradientSlice[coordinates[0]][coordinates[1]]-gradientMean)/gradientDiff;
-								gradientCost = Math.abs(gradientSlice[coordinateToCheck[0]][coordinateToCheck[1]][slice]-gradientMean)/gradientDiff;
+								//gradientCost = Math.abs(gradientSlice[coordinateToCheck[0]][coordinateToCheck[1]][slice]-gradientMean)/gradientDiff;
+								gradientCost /=((double) horizontalNeighbourhood);
 								pixelQueue.add(new NextPixel(cost,gradientCost,queueCoordinates));
 							}
 					   }

@@ -165,15 +165,18 @@ public class IJGrowerLBP implements PlugIn {
 			
 			
 			//Sagittal grow to get close to bone borders...
+			
 			oldPixelNo = 1;
 			IJ.log("Into frontal plane three");
-			while (newPixelNo/oldPixelNo > 1.01){ //Grow until less than 1% new pixels are added
+			int growReps = 0;
+			while (newPixelNo/oldPixelNo > 1.01 && growReps < 8){ //Grow until less than 1% new pixels are added
 				oldPixelNo = newPixelNo;
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				segmentationMask = frontalPlaneSegmentationThree(image3D,gradient3D,segmentationMask,greyLimits[1],gradientLimits[1]);
 				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 				newPixelNo = meanAndArea[1];
-				System.out.println("Pixels in Mask after Sagittal "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
+				++growReps;
+				System.out.println("Rep "+growReps+" Pixels in Mask after Sagittal "+meanAndArea[1]+" Increment "+newPixelNo/oldPixelNo);
 			}
 			
 			
@@ -286,7 +289,11 @@ public class IJGrowerLBP implements PlugIn {
 			greyLimit = stdMultiplier*stDev;
 			double stDevGradient = RegionGrow.getStdev(segmentationMask, gradient3D,meanAndAreaGradient[0]);
 			diffLimitGradient = stDevGradient*gradientMultiplier;//*stdMultiplier;
-
+			
+			/*Limit greyLimit to 500 and diffLimit to 150*/
+			greyLimit = greyLimit < 500.0 ? greyLimit : 500.0;
+			diffLimitGradient = diffLimitGradient < 150.0 ? diffLimitGradient : 150.0;
+			
 		IJ.log("Mean "+meanAndArea[0]+" GreyLimit "+greyLimit+" GMean "+meanAndAreaGradient[0]+" GLimit "+diffLimitGradient);
 		for (int d = 0; d < depth; ++d) {
 			/*Get the slice*/
