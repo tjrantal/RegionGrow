@@ -13,9 +13,9 @@ macro "LookStudyAnalysis"{
 	//FUNCTION TO ANALYSE FILES
 	function analyseFiles(sourceDir){
 		files = getFileList(sourceDir);
-		for (i = 0; i<files.length;++i){
+		//for (i = 0; i<files.length;++i){
 		//for (i = 3; i<files.length;++i){
-		//for (i = 5; i<files.length;++i){
+		for (i = 5; i<files.length;++i){
 		//for (i = 9; i<files.length;++i){
 			testi = File.isDirectory(sourceDir+files[i]);
 			if (File.isDirectory(sourceDir+files[i])==1){ /*A folder*/
