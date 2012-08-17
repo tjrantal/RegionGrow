@@ -18,6 +18,7 @@ import ij.process.ImageProcessor;		/*For setting output stack image properties*/
 import ij.io.FileInfo;			/*For setting image voxel dimensions...*/
 import java.util.Properties;	/*For getting image properties*/
 import java.util.*;				/*For enumeration*/
+import ij.Prefs;				/*For finding out default path*/
 /*
  Performs connected region growing. User is asked to provide the seed area points.
  Result is displayed as a binary image. Works with 3D images stack.
@@ -34,7 +35,7 @@ public class IJGrowerLBP implements PlugIn {
 	private double[] lbpLimits;
 	private double[] greyLimits;
 	private double[] gradientLimits;
-	
+	public String fileDump;
 	
     public void run(String arg) {
         ImagePlus imp = WindowManager.getCurrentImage();
@@ -201,16 +202,16 @@ public class IJGrowerLBP implements PlugIn {
 
 
 		//Dump out the results
-		/*
-		WriteMat writeMat = new WriteMat("C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\matlabDump\\testDump.mat");
+		IJ.log("Starting File Dump");
+		WriteMat writeMat = new WriteMat(fileDump);
 		writeMat.writeArray(image3D,"data");
 		writeMat.writeArray(segmentationMask,"mask");
 		writeMat.closeFile();
-		*/
+		IJ.log("File Dump done");
 		
 		
 		//Visualize result
-		
+		/*
 		Calibration calibration = imp.getCalibration();
 		double[] vRange = {imp.getDisplayRangeMin(),imp.getDisplayRangeMax()};
 		//Visualize segmentation on the original image
@@ -221,15 +222,7 @@ public class IJGrowerLBP implements PlugIn {
 		ImagePlus visualizationStack = createVisualizationStack(segmentationMask,image3D, calibration);
 		visualizationStack.setDisplayRange(vRange[0],vRange[1]);
 		visualizationStack.show();
-		//Visualize segmentation on horizontal plane
-		/*
-		ImagePlus horizontalStack = createHorizontalVisualizationStack(segmentationMask,image3D, calibration);
-		horizontalStack.setDisplayRange(vRange[0],vRange[1]);
-		horizontalStack.show();
-		*/
-		//Visualize mask
-		
-        
+        */
 		
     }
 	
@@ -780,7 +773,7 @@ public class IJGrowerLBP implements PlugIn {
 		gd.addNumericField("GradientLimit", 1.5, 1);
 		gd.addNumericField("GradientLimit2", 1.5, 1);
 		gd.addNumericField("GradientLimit3", 1.5, 1);
-
+		gd.addStringField("Result_dump_path",Prefs.getDefaultDirectory(),60);
         gd.showDialog();
 
         if (gd.wasCanceled()) {
@@ -809,6 +802,8 @@ public class IJGrowerLBP implements PlugIn {
 		for (int i = 0; i<gradientLimits.length;++i){
 			gradientLimits[i] = gd.getNextNumber();
 		}
+		
+		fileDump = gd.getNextString();
         return true;
     }
 	

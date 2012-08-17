@@ -56,7 +56,13 @@ public class WriteMat{
 	
 	public WriteMat(String fileName){
 		try{
-			writer = new FileOutputStream(fileName);
+			File file = new File(fileName);
+			String pathName = file.getParent();
+			File folderFile= new File(pathName);
+			if (!folderFile.exists()){
+				folderFile.mkdirs();
+			}
+			writer = new FileOutputStream(file);
 			writeHeader();
 		}catch (Exception err){System.out.println("Couldn't open "+err.toString());}
 	}
@@ -101,16 +107,20 @@ public class WriteMat{
 			writer.write(dataElementHeader);	/*writeDataElementHeader*/
 			/*Write the array data*/
 			/*DATA*/
-			byte[] tempArray = new byte[8];
+			/*Write to memory first and then dump to file...*/
+			
+			byte[] tempArray = new byte[data.length*data[0].length*data[0][0].length*8];
+			int offset = 0;
 			for (int d = 0; d < data[0][0].length; ++d) {
 				for (int c = 0;c<data[0].length;++c){
 					for (int r = 0;r<data.length;++r){
-					
-						tempArray = putDouble(tempArray,data[r][c][d],0);	/*Matlab data needs to be written column at a time*/
-						writer.write(tempArray);
+						tempArray = putDouble(tempArray,data[r][c][d],offset);	/*Matlab data needs to be written column at a time*/
+						offset+=8;
 					}
 				}
 			}
+			
+			writer.write(tempArray);
 		}catch (Exception err){System.out.println("Couldn't write array "+err.toString());}
 	}
 	
@@ -120,19 +130,22 @@ public class WriteMat{
 			writer.write(dataElementHeader);	/*writeDataElementHeader*/
 			/*Write the array data*/
 			/*DATA*/
+			int dataSize = data.length*data[0].length*data[0][0].length;
+			byte[] tempArray = new byte[dataSize];
+			int offset = 0;
 			for (int d = 0; d < data[0][0].length; ++d) {
 				for (int c = 0;c<data[0].length;++c){
 					for (int r = 0;r<data.length;++r){		/*Matlab data needs to be written column at a time*/
-						writer.write(data[r][c][d]);
+						tempArray[offset] = data[r][c][d]; 
+						++offset;
 					}
 				}
 			}
-			int dataSize = data.length*data[0].length*data[0][0].length;
+			writer.write(tempArray);
 			if (dataSize%8 != 0){
 				byte[] padding  = new byte[8-dataSize%8];
 				writer.write(padding);
 			}
-			printMatrix(data);
 			
 		}catch (Exception err){System.out.println("Couldn't write array "+err.toString());}
 	}
