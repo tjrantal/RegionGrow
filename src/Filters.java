@@ -10,7 +10,7 @@ package	ijGrower;
 import java.text.DecimalFormat;	/*For debugging*/
 
 public class Filters{
-	
+
 	public static double[][] getGradientImage(double[][] imagePixels){
 		int rows = imagePixels.length;
 		int columns = imagePixels[0].length;

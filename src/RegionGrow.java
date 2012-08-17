@@ -99,7 +99,42 @@ public abstract class RegionGrow{
 		return indices;
 	}
 
-
+	public static byte[][][] dilateSlices(byte[][][] mask, double[][][] data, double[] dilateLimits){
+		int width = mask.length;
+		int height = mask[0].length;
+		int depth = mask[0][0].length;
+		byte dilateVal = 1;
+		byte min = 0;
+		byte temp = -1;
+		int[][] neighbours = {{-1,0},{1,0},{0,-1},{0,1}};
+		for (int d = 0; d<depth;++d){
+			for (int i=0; i<width; ++i){
+				for (int j=0; j<height; ++j){
+					if (mask[i][j][d] ==dilateVal){
+						for (int n = 0; n<neighbours.length;++n){
+							if (i>0 && i <width-1 && j > 0 && j<height-1 && 
+								mask[i+neighbours[n][0]][j+neighbours[n][1]][d]==min && 
+								data[i+neighbours[n][0]][j+neighbours[n][1]][d]	>= dilateLimits[0] && 
+								data[i+neighbours[n][0]][j+neighbours[n][1]][d]	<= dilateLimits[1]){
+									mask[i+neighbours[n][0]][j+neighbours[n][1]][d] = temp;
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		for (int d = 0; d<depth;++d){
+			for (int i=0; i<width; ++i){
+				for (int j=0; j<height; ++j){
+					if (mask[i][j][d] == temp){
+						mask[i][j][d] = dilateVal;	//Set to proper value here...
+					}
+				}
+			}
+		}
+		return mask;
+	}
 	
 }
 

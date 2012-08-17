@@ -180,6 +180,19 @@ public class IJGrowerLBP implements PlugIn {
 			}
 			
 			
+			/*dilate masks*/
+			meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+			double[] dilateLimits = {meanAndArea[0]-500.0,meanAndArea[0]+500.0};
+			IJ.log("Dilate Limits "+dilateLimits[0]+" up "+dilateLimits[1]);
+			oldPixelNo = (double) meanAndArea[1];
+			for (int i = 0; i<20;++i){
+				
+				segmentationMask = RegionGrow.dilateSlices(segmentationMask,image3D,dilateLimits);
+				meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
+				System.out.println("Pixels afer grow "+meanAndArea[1]+" Increment "+(((double)meanAndArea[1])/oldPixelNo) );
+				oldPixelNo = (double)meanAndArea[1];
+			}
+			
 		}
 		
 		
