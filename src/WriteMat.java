@@ -112,8 +112,8 @@ public class WriteMat{
 			byte[] tempArray = new byte[data.length*data[0].length*data[0][0].length*8];
 			int offset = 0;
 			for (int d = 0; d < data[0][0].length; ++d) {
-				for (int c = 0;c<data[0].length;++c){
-					for (int r = 0;r<data.length;++r){
+				for (int r = 0;r<data.length;++r){
+					for (int c = 0;c<data[0].length;++c){					
 						tempArray = putDouble(tempArray,data[r][c][d],offset);	/*Matlab data needs to be written column at a time*/
 						offset+=8;
 					}
@@ -134,8 +134,8 @@ public class WriteMat{
 			byte[] tempArray = new byte[dataSize];
 			int offset = 0;
 			for (int d = 0; d < data[0][0].length; ++d) {
-				for (int c = 0;c<data[0].length;++c){
-					for (int r = 0;r<data.length;++r){		/*Matlab data needs to be written column at a time*/
+				for (int r = 0;r<data.length;++r){		/*Matlab data needs to be written column at a time*/
+					for (int c = 0;c<data[0].length;++c){
 						tempArray[offset] = data[r][c][d]; 
 						++offset;
 					}

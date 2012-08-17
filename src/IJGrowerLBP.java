@@ -19,6 +19,7 @@ import ij.io.FileInfo;			/*For setting image voxel dimensions...*/
 import java.util.Properties;	/*For getting image properties*/
 import java.util.*;				/*For enumeration*/
 import ij.Prefs;				/*For finding out default path*/
+import ij.io.FileSaver;			/*For saving result stack*/
 /*
  Performs connected region growing. User is asked to provide the seed area points.
  Result is displayed as a binary image. Works with 3D images stack.
@@ -36,7 +37,7 @@ public class IJGrowerLBP implements PlugIn {
 	private double[] greyLimits;
 	private double[] gradientLimits;
 	public String fileDump;
-	
+	public String visualDump;
     public void run(String arg) {
         ImagePlus imp = WindowManager.getCurrentImage();
         /*Check that an image was open*/
@@ -211,18 +212,20 @@ public class IJGrowerLBP implements PlugIn {
 		
 		
 		//Visualize result
-		/*
+		
 		Calibration calibration = imp.getCalibration();
 		double[] vRange = {imp.getDisplayRangeMin(),imp.getDisplayRangeMax()};
 		//Visualize segmentation on the original image
 		
+		/*
 		ImagePlus resultStack = createOutputStack(segmentationMask, calibration);
 		resultStack.show();
-		
+		*/
 		ImagePlus visualizationStack = createVisualizationStack(segmentationMask,image3D, calibration);
 		visualizationStack.setDisplayRange(vRange[0],vRange[1]);
 		visualizationStack.show();
-        */
+		FileSaver fsaver = new FileSaver(visualizationStack);
+        fsaver.saveAsRawStack(visualDump);
 		
     }
 	
@@ -774,6 +777,7 @@ public class IJGrowerLBP implements PlugIn {
 		gd.addNumericField("GradientLimit2", 1.5, 1);
 		gd.addNumericField("GradientLimit3", 1.5, 1);
 		gd.addStringField("Result_dump_path",Prefs.getDefaultDirectory(),60);
+		gd.addStringField("Visual_result_path",Prefs.getDefaultDirectory(),60);
         gd.showDialog();
 
         if (gd.wasCanceled()) {
@@ -804,6 +808,7 @@ public class IJGrowerLBP implements PlugIn {
 		}
 		
 		fileDump = gd.getNextString();
+		visualDump =gd.getNextString();
         return true;
     }
 	
