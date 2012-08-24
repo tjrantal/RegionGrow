@@ -20,6 +20,8 @@ import java.util.Properties;	/*For getting image properties*/
 import java.util.*;				/*For enumeration*/
 import ij.Prefs;				/*For finding out default path*/
 import ij.io.FileSaver;			/*For saving result stack*/
+import ij.io.FileOpener;			/*For saving result stack*/
+
 /*
  Performs connected region growing. User is asked to provide the seed area points.
  Result is displayed as a binary image. Works with 3D images stack.
@@ -38,6 +40,8 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 	private double[] gradientLimits;
 	public String fileDump;
 	public String visualDump;
+	public String templatePath;
+	public String templateFileName;
     public void run(String arg) {
         ImagePlus imp = WindowManager.getCurrentImage();
         /*Check that an image was open*/
@@ -85,19 +89,21 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 					tempData[c][r] = (double) temp[c+r*width];
 				}
 			}
+			/*
 			Thread newThread = new MultiThreaderLBPandGradient(tempData,d);
 			newThread.start();
 			threads.add(newThread);
-
+			*/
 			//IJ.log("Slice "+(d+1)+"/"+depth+" threading");
         }
 		/*Catch the slice threads*/
+		/*
 		for (int t = 0; t<threads.size();++t){
 			try{
 				((Thread) threads.get(t)).join();
 			}catch(Exception er){}
 			
-			/*Copy the mask result to mask3D*/
+			//Copy the mask result to mask3D
 			int d = ((MultiThreaderLBPandGradient) threads.get(t)).d;
 			//IJ.log("Slice "+(d+1)+"/"+depth+" finished");
 			byte[][] lbpImage = ((MultiThreaderLBPandGradient) threads.get(t)).lbpImage;
@@ -109,16 +115,79 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 				}
 			}
 		}
-		
+		*/
 		
 		
 		
 		
 		IJ.log("Memory stacks done");
+		//Read the template
+		FileInfo fi = new FileInfo();
+		fi.width = 290;
+		fi.height = 200;
+		fi.offset = 0;
+		fi.fileFormat = FileInfo.RAW;
+		fi.fileType = FileInfo.GRAY16_SIGNED;
+		fi.intelByteOrder = true;
+		fi.fileName = templateFileName;
+		fi.directory = templatePath;
+		FileOpener fopen = new FileOpener(fi);
+		ImagePlus templateImage = fopen.open(false);
+		double [][] templateData = new double[templateImage.getWidth()][templateImage.getHeight()];
+		short[] templatePixels;
 		
-		/*Construct the segmented mask*/
-		byte[][][] segmentationMask = new byte[width][height][depth];	/*Initialized to zero by Java as default*/
-		/*Create Seed volume, experimentally chosen....*/
+		templatePixels = (short[]) templateImage.getProcessor().getPixels();
+		for (int r = 0;r<templateData[0].length;++r){
+			for (int c = 0;c<templateData.length;++c){
+				templateData[c][r] = (double) templatePixels[c+r*width];
+			}
+		}
+	
+		
+		/*
+		IJ.log("Starting 2D xcorr, might take a while");
+		double[][][] xcorrelation3d = new double[image3D.length-template2d.length+1][image3D[0].length-template2d[0].length+1][depth];
+		
+		
+		double[][] tempData;
+		IJ.log("Start creating memory stacks");
+        //Create threads for slices
+		List threads = new ArrayList();
+		for (int d = 0; d < depth; ++d) {
+			tempData = new double[width][height];
+			for (int r = 0;r<height;++r){
+				for (int c = 0;c<width;++c){
+					tempData[c][r] =  image3D[c][r][d];
+				}
+			}
+			Thread newThread = new MultiThreaderXCorr(tempData,template2d,d);
+			newThread.start();
+			threads.add(newThread);
+
+			IJ.log("Slice "+(d+1)+"/"+depth+" threading");
+        }
+		//Catch the slice threads
+		for (int t = 0; t<threads.size();++t){
+			try{
+				((Thread) threads.get(t)).join();
+			}catch(Exception er){}
+			
+			//Copy the mask result to mask3D
+			int d = ((MultiThreaderXCorr) threads.get(t)).d;
+			IJ.log("Slice "+(d+1)+"/"+depth+" finished");
+			double[][] xcorrImage = ((MultiThreaderXCorr) threads.get(t)).xcorr;
+			for (int r = 0;r<xcorrImage[0].length;++r){
+				for (int c = 0;c<xcorrImage.length;++c){
+					xcorrelation3d[c][r][d] =xcorrImage[c][r];
+				}
+			}
+		}
+		IJ.log("3D xcorr done");
+		*/
+		/*
+		//Construct the segmented mask
+		byte[][][] segmentationMask = new byte[width][height][depth];	//Initialized to zero by Java as default
+		//Create Seed volume, experimentally chosen....
 		for (int d = seedPoints[4]; d < seedPoints[5]; ++d) {
 			for (int r = seedPoints[2];r<seedPoints[3];++r){
 				for (int c = seedPoints[0];c<seedPoints[1];++c){
@@ -209,24 +278,21 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 		writeMat.writeArray(segmentationMask,"mask");
 		writeMat.closeFile();
 		IJ.log("File Dump done");
-		
+		*/
 		
 		//Visualize result
-		
+		/*
 		Calibration calibration = imp.getCalibration();
 		double[] vRange = {imp.getDisplayRangeMin(),imp.getDisplayRangeMax()};
 		//Visualize segmentation on the original image
-		
-		/*
-		ImagePlus resultStack = createOutputStack(segmentationMask, calibration);
-		resultStack.show();
-		*/
 		ImagePlus visualizationStack = createVisualizationStack(segmentationMask,image3D, calibration);
 		visualizationStack.setDisplayRange(vRange[0],vRange[1]);
 		visualizationStack.show();
+		*/
+		/*
 		FileSaver fsaver = new FileSaver(visualizationStack);
         fsaver.saveAsRawStack(visualDump);
-		
+		*/
     }
 	
 	/*Frontal plane LBP analysis*/	
@@ -755,13 +821,13 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
     private boolean getParameters() {	
 		/*Create dialog*/
         final GenericDialog gd = new GenericDialog("Grow options");
-        gd.addMessage("Seed volume coordinates");
-        gd.addNumericField("xLow", 169, 0);
-		gd.addNumericField("xHigh", 250, 0);
-        gd.addNumericField("yLow", 370, 0);
-		gd.addNumericField("yHigh", 390, 0);
-        gd.addNumericField("zLow", 8, 0);
-		gd.addNumericField("zHigh", 12, 0);
+        gd.addMessage("Template for seed search (raw 16 bit signed int)");
+		//gd.addStringField("PathToTemplate",Prefs.getDefaultDirectory()+"/",60);
+		gd.addStringField("PathToTemplate","C:/MyTemp/oma/Timon/tyo/SubchondralPilot/ijGrower/src/template/",60);
+		
+		gd.addStringField("TemplateFileName","master.raw",60);
+        gd.addNumericField("Width", 169, 0);
+		gd.addNumericField("Height", 250, 0);
         gd.addMessage("Maximum difference");
         gd.addNumericField("maxDiff", 5.0, 1);
 		gd.addCheckbox("3D", false);
@@ -783,7 +849,9 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
         if (gd.wasCanceled()) {
             return false;
         }
-		seedPoints = new int[6];
+		templatePath = gd.getNextString();
+		templateFileName = gd.getNextString();
+		seedPoints = new int[2];
 		/*Get the values*/
 		for (int i = 0; i<seedPoints.length;++i){
 			seedPoints[i] = (int) gd.getNextNumber();
