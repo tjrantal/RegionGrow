@@ -182,7 +182,7 @@ public class IJGrowerLBP implements PlugIn {
 			}
 			
 			
-			/*dilate masks*/
+			//dilate masks
 			meanAndArea = RegionGrow.getCurrentMeanAndArea(segmentationMask, image3D);
 			//double[] dilateLimits = {meanAndArea[0]-500.0,meanAndArea[0]+500.0};
 			double[] dilateLimits = {500.0,1500.0};

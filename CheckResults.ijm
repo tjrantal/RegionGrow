@@ -2,7 +2,8 @@
 
 macro "LookStudyAnalysis"{
 	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\matlabDump\\ijTerveet\\"
-	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\matlabDump\\ijLuru\\"
+	//sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\matlabDump\\ijLuru\\"
+	sourceDir = "C:\\MyTemp\\oma\\Timon\\tyo\\SubchondralPilot\\matlabDump\\ijTerveetRe\\"
 	analyseFiles(sourceDir);
 }
 
