@@ -123,8 +123,8 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 		IJ.log("Memory stacks done");
 		//Read the template
 		FileInfo fi = new FileInfo();
-		fi.width = 290;
-		fi.height = 200;
+		fi.width = seedPoints[0];
+		fi.height = seedPoints[1];
 		fi.offset = 0;
 		fi.fileFormat = FileInfo.RAW;
 		fi.fileType = FileInfo.GRAY16_SIGNED;
@@ -133,26 +133,26 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 		fi.directory = templatePath;
 		FileOpener fopen = new FileOpener(fi);
 		ImagePlus templateImage = fopen.open(false);
-		double [][] templateData = new double[templateImage.getWidth()][templateImage.getHeight()];
+		double [][] template2d = new double[templateImage.getWidth()][templateImage.getHeight()];
 		short[] templatePixels;
 		
 		templatePixels = (short[]) templateImage.getProcessor().getPixels();
-		for (int r = 0;r<templateData[0].length;++r){
-			for (int c = 0;c<templateData.length;++c){
-				templateData[c][r] = (double) templatePixels[c+r*width];
+		for (int r = 0;r<template2d[0].length;++r){
+			for (int c = 0;c<template2d.length;++c){
+				template2d[c][r] = (double) templatePixels[c+r*template2d.length];
 			}
 		}
 	
 		
-		/*
+		
 		IJ.log("Starting 2D xcorr, might take a while");
 		double[][][] xcorrelation3d = new double[image3D.length-template2d.length+1][image3D[0].length-template2d[0].length+1][depth];
 		
 		
-		double[][] tempData;
 		IJ.log("Start creating memory stacks");
         //Create threads for slices
-		List threads = new ArrayList();
+		//List threads = new ArrayList();
+		threads.clear();
 		for (int d = 0; d < depth; ++d) {
 			tempData = new double[width][height];
 			for (int r = 0;r<height;++r){
@@ -183,7 +183,9 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 			}
 		}
 		IJ.log("3D xcorr done");
-		*/
+		Calibration calibration = imp.getCalibration();
+		ImagePlus xcorrelationStack = createXCorrStack(xcorrelation3d, calibration);
+		xcorrelationStack.show();
 		/*
 		//Construct the segmented mask
 		byte[][][] segmentationMask = new byte[width][height][depth];	//Initialized to zero by Java as default
@@ -811,6 +813,41 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
         return returnStack;
     }
 
+		/*Visual mask result*/
+	private ImagePlus createXCorrStack(double[][][] mask3d, Calibration calibration) {
+		int width	=mask3d.length;
+		int height	=mask3d[0].length;
+		int depth	=mask3d[0][0].length;
+        ImageStack resultStack = new ImageStack(width, height);
+        int pixels = width*height;
+	
+		float min = Float.POSITIVE_INFINITY;
+		float max = Float.NEGATIVE_INFINITY;
+        for (int d = 0; d < depth; ++d) {
+			/*Set Pixels*/
+			float[] slicePixels = new float[width*height];
+			for (int r = 0;r<height;++r){
+				for (int c = 0;c<width;++c){
+					slicePixels[c+r*width] = (float) mask3d[c][r][d];
+					if ((float) mask3d[c][r][d] > max){max = (float) mask3d[c][r][d];}
+					if ((float) mask3d[c][r][d] < min){min = (float) mask3d[c][r][d];}
+				}
+			}
+			//impS
+            resultStack.addSlice(null,slicePixels);
+
+        }
+		ImagePlus returnStack = new ImagePlus("XCorr", resultStack);
+		/*Set Calibration*/
+		returnStack.getCalibration().pixelWidth = calibration.pixelWidth;
+		returnStack.getCalibration().pixelHeight  = calibration.pixelHeight;
+		returnStack.getCalibration().pixelDepth  = calibration.pixelDepth;
+		returnStack.getCalibration().setUnit("mm");
+		returnStack.setDisplayRange( min, max);
+        return returnStack;
+    }
+	
+	
     /*
       Get seed volume and maximum difference from user.
      
