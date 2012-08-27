@@ -183,6 +183,9 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 			}
 		}
 		IJ.log("3D xcorr done");
+		/*Set seed according to XCorr*/
+		
+		
 		Calibration calibration = imp.getCalibration();
 		ImagePlus xcorrelationStack = createXCorrStack(xcorrelation3d, calibration);
 		xcorrelationStack.show();

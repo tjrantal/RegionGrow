@@ -136,6 +136,26 @@ public abstract class RegionGrow{
 		return mask;
 	}
 	
+	/*Get 3D Stack max and maxIndice*/
+	public static Max getMax(double[][][] dataSlice){
+		double max = Double.NEGATIVE_INFINITY;
+		int[] indices = new int[3];
+		for (int i = 0; i<dataSlice.length; ++i){
+			for (int j = 0; j<dataSlice[i].length; ++j){
+				for (int k = 0; k<dataSlice[i][j].length; ++k){
+					if (dataSlice[i][j][k] > max){
+						max = dataSlice[i][j][k];
+						indices[0] = i;
+						indices[1] = j;
+						indices[2] = k;
+					}
+				}
+			}
+		}
+		Max returnValue = new Max(max,indices);
+		return returnValue;
+	}
+
 }
 
 
