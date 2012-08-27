@@ -90,15 +90,15 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 					tempData[c][r] = (double) temp[c+r*width];
 				}
 			}
-			/*
+			
 			Thread newThread = new MultiThreaderLBPandGradient(tempData,d);
 			newThread.start();
 			threads.add(newThread);
-			*/
+			
 			//IJ.log("Slice "+(d+1)+"/"+depth+" threading");
         }
-		/*Catch the slice threads*/
-		/*
+		//Catch the slice threads
+		
 		for (int t = 0; t<threads.size();++t){
 			try{
 				((Thread) threads.get(t)).join();
@@ -116,7 +116,7 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 				}
 			}
 		}
-		*/
+		
 		
 		
 		
@@ -171,19 +171,18 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 		//Set seed according to XCorr
 		Max max = RegionGrow.getMax(xcorrelation3d);
 		IJ.log("X "+max.indices[0]+" Y "+max.indices[1]+" Z "+max.indices[2]);
+		int[] maxIndices = checkMaxNeighbours(xcorrelation3d,max.indices);
 
-
-		//Calibration calibration = imp.getCalibration();
-		//ImagePlus xcorrelationStack = createXCorrStack(xcorrelation3d, calibration);
-		//xcorrelationStack.show();
 
 		//Construct the segmented mask
 		byte[][][] segmentationMask = new byte[width][height][depth];	//Initialized to zero by Java as default
 		//Create Seed volume, experimentally chosen....
-		for (int c = 0;c<mask2d.length;++c){
-			for (int r = 0;r<mask2d[c].length;++r){
-				if (mask2d[c][r] > 0){
-					segmentationMask[c+max.indices[0]-1][r+max.indices[1]-1][max.indices[2]] = (byte) 1;
+		for (int d = 0;d<maxIndices.length;++d){
+			for (int c = 0;c<mask2d.length;++c){
+				for (int r = 0;r<mask2d[c].length;++r){
+					if (mask2d[c][r] > 0){
+						segmentationMask[c+max.indices[0]-1][r+max.indices[1]-1][maxIndices[d]] = (byte) 1;
+					}
 				}
 			}
 		}
@@ -192,7 +191,7 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 		
 
 		
-		/*
+		
 		
 		//Test LBP Grow
 		//Get LBP model histogram
@@ -262,7 +261,7 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 		
 		
 
-		/*
+		
 		//Dump out the results
 		IJ.log("Starting File Dump");
 		WriteMat writeMat = new WriteMat(fileDump);
@@ -270,7 +269,7 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 		writeMat.writeArray(segmentationMask,"mask");
 		writeMat.closeFile();
 		IJ.log("File Dump done");
-		*/
+		
 		
 		//Visualize result
 		
@@ -281,11 +280,36 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 		visualizationStack.setDisplayRange(vRange[0],vRange[1]);
 		visualizationStack.show();
 		
-		/*
+		
 		FileSaver fsaver = new FileSaver(visualizationStack);
         fsaver.saveAsRawStack(visualDump);
-		*/
     }
+	
+	/*Check neigbouring slice xcorrs*/
+	public int[] checkMaxNeighbours(double[][][] xcorrelation3D,int[] indices){
+		int init= 0;
+		Vector<Integer> neighbours = new Vector<Integer>();
+		neighbours.add(indices[2]);
+		int end = xcorrelation3D[0][0].length;
+		if (indices[2]>1){init = indices[2]-2;}
+		if (indices[2] < end+3){end = indices[2]+2;}
+		int[] check = {-1,1,-2,2};
+		for (int i = 0;i<check.length;++i){
+			if (indices[2]+check[i] > 0 && indices[2]+check[i] < xcorrelation3D[0][0].length){
+				if (xcorrelation3D[indices[0]][indices[1]][indices[2]+check[i]] >=0.95*xcorrelation3D[indices[0]][indices[1]][indices[2]]){
+					neighbours.add(indices[2]+check[i]);
+				}
+				if (neighbours.size() > 2){
+					break;
+				}
+			}
+		}
+		int[] returnValue = new int[neighbours.size()];
+		for (int i = 0; i<returnValue.length;++i){
+			returnValue[i] = neighbours.get(i);
+		}
+		return returnValue;
+	}
 	
 	/*Read template data*/
 	public double[][] readTemplateFile(String templatePath, String templateFileName){
