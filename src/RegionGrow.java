@@ -155,7 +155,22 @@ public abstract class RegionGrow{
 		Max returnValue = new Max(max,indices);
 		return returnValue;
 	}
-
+		/*Get 2D Stack max and maxIndice*/
+	public static Max getMax(double[][] dataSlice){
+		double max = Double.NEGATIVE_INFINITY;
+		int[] indices = new int[2];
+		for (int i = 0; i<dataSlice.length; ++i){
+			for (int j = 0; j<dataSlice[i].length; ++j){
+					if (dataSlice[i][j] > max){
+						max = dataSlice[i][j];
+						indices[0] = i;
+						indices[1] = j;
+					}
+			}
+		}
+		Max returnValue = new Max(max,indices);
+		return returnValue;
+	}
 }
 
 

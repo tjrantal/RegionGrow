@@ -42,6 +42,7 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 	public String visualDump;
 	public String templatePath;
 	public String templateFileName;
+	public String templateMaskName;
     public void run(String arg) {
         ImagePlus imp = WindowManager.getCurrentImage();
         /*Check that an image was open*/
@@ -122,32 +123,16 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 		
 		IJ.log("Memory stacks done");
 		//Read the template
-		FileInfo fi = new FileInfo();
-		fi.width = seedPoints[0];
-		fi.height = seedPoints[1];
-		fi.offset = 0;
-		fi.fileFormat = FileInfo.RAW;
-		fi.fileType = FileInfo.GRAY16_SIGNED;
-		fi.intelByteOrder = true;
-		fi.fileName = templateFileName;
-		fi.directory = templatePath;
-		FileOpener fopen = new FileOpener(fi);
-		ImagePlus templateImage = fopen.open(false);
-		double [][] template2d = new double[templateImage.getWidth()][templateImage.getHeight()];
-		short[] templatePixels;
-		
-		templatePixels = (short[]) templateImage.getProcessor().getPixels();
-		for (int r = 0;r<template2d[0].length;++r){
-			for (int c = 0;c<template2d.length;++c){
-				template2d[c][r] = (double) templatePixels[c+r*template2d.length];
-			}
-		}
+		double[][] template2d = readTemplateFile(templatePath,templateFileName);
+		double[][] mask2d = readTemplateFile(templatePath,templateMaskName);
+
 	
 		
 		
 		IJ.log("Starting 2D xcorr, might take a while");
 		double[][][] xcorrelation3d = new double[image3D.length-template2d.length+1][image3D[0].length-template2d[0].length+1][depth];
-		
+		Max testM = RegionGrow.getMax(mask2d);
+		System.out.println(testM.max);
 		
 		IJ.log("Start creating memory stacks");
         //Create threads for slices
@@ -183,29 +168,31 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 			}
 		}
 		IJ.log("3D xcorr done");
-		/*Set seed according to XCorr*/
-		
-		
-		Calibration calibration = imp.getCalibration();
-		ImagePlus xcorrelationStack = createXCorrStack(xcorrelation3d, calibration);
-		xcorrelationStack.show();
-		/*
+		//Set seed according to XCorr
+		Max max = RegionGrow.getMax(xcorrelation3d);
+		IJ.log("X "+max.indices[0]+" Y "+max.indices[1]+" Z "+max.indices[2]);
+
+
+		//Calibration calibration = imp.getCalibration();
+		//ImagePlus xcorrelationStack = createXCorrStack(xcorrelation3d, calibration);
+		//xcorrelationStack.show();
+
 		//Construct the segmented mask
 		byte[][][] segmentationMask = new byte[width][height][depth];	//Initialized to zero by Java as default
 		//Create Seed volume, experimentally chosen....
-		for (int d = seedPoints[4]; d < seedPoints[5]; ++d) {
-			for (int r = seedPoints[2];r<seedPoints[3];++r){
-				for (int c = seedPoints[0];c<seedPoints[1];++c){
-					segmentationMask[c][r][d] = (byte) 1;
+		for (int c = 0;c<mask2d.length;++c){
+			for (int r = 0;r<mask2d[c].length;++r){
+				if (mask2d[c][r] > 0){
+					segmentationMask[c+max.indices[0]-1][r+max.indices[1]-1][max.indices[2]] = (byte) 1;
 				}
 			}
-        }
-		
+		}
+        
 		double[] meanAndArea;
 		
 
 		
-		
+		/*
 		
 		//Test LBP Grow
 		//Get LBP model histogram
@@ -275,7 +262,7 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 		
 		
 
-
+		/*
 		//Dump out the results
 		IJ.log("Starting File Dump");
 		WriteMat writeMat = new WriteMat(fileDump);
@@ -286,19 +273,48 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 		*/
 		
 		//Visualize result
-		/*
+		
 		Calibration calibration = imp.getCalibration();
 		double[] vRange = {imp.getDisplayRangeMin(),imp.getDisplayRangeMax()};
 		//Visualize segmentation on the original image
 		ImagePlus visualizationStack = createVisualizationStack(segmentationMask,image3D, calibration);
 		visualizationStack.setDisplayRange(vRange[0],vRange[1]);
 		visualizationStack.show();
-		*/
+		
 		/*
 		FileSaver fsaver = new FileSaver(visualizationStack);
         fsaver.saveAsRawStack(visualDump);
 		*/
     }
+	
+	/*Read template data*/
+	public double[][] readTemplateFile(String templatePath, String templateFileName){
+			FileInfo fi = new FileInfo();
+		fi.width = seedPoints[0];
+		fi.height = seedPoints[1];
+		fi.offset = 0;
+		fi.fileFormat = FileInfo.RAW;
+		fi.fileType = FileInfo.GRAY16_SIGNED;
+		fi.intelByteOrder = true;
+		fi.fileName = templateFileName;
+		fi.directory = templatePath;
+		FileOpener fopen = new FileOpener(fi);
+		ImagePlus templateImage = fopen.open(false);
+		double [][] template2d = new double[templateImage.getWidth()][templateImage.getHeight()];
+		short[] templatePixels;
+		
+		templatePixels = (short[]) templateImage.getProcessor().getPixels();
+		int subt = 0;
+		subt = 1<<15;
+		//System.out.println(subt);
+		for (int r = 0;r<template2d[0].length;++r){
+			for (int c = 0;c<template2d.length;++c){
+				template2d[c][r] = ((double) (((int) templatePixels[c+r*template2d.length])+subt));
+			}
+		}
+		templateImage.close();
+		return template2d;
+	}
 	
 	/*Frontal plane LBP analysis*/	
 		byte[][][] frontalPlaneSegmentationLBP(double[][][] image3D, byte[][][] segmentationMask,double diffLimit, LBP lbp, int lbpBlockRadius, double[] lbpModelHist,int preErodeReps, int postErodeReps){
@@ -866,6 +882,7 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 		gd.addStringField("PathToTemplate","C:/MyTemp/oma/Timon/tyo/SubchondralPilot/ijGrower/src/template/",60);
 		
 		gd.addStringField("TemplateFileName","master.raw",60);
+		gd.addStringField("TemplateMaskName","mask.raw",60);
         gd.addNumericField("Width", 169, 0);
 		gd.addNumericField("Height", 250, 0);
         gd.addMessage("Maximum difference");
@@ -891,6 +908,7 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
         }
 		templatePath = gd.getNextString();
 		templateFileName = gd.getNextString();
+		templateMaskName = gd.getNextString();
 		seedPoints = new int[2];
 		/*Get the values*/
 		for (int i = 0; i<seedPoints.length;++i){

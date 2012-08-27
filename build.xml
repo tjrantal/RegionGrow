@@ -40,6 +40,7 @@
   <target name="javacompile" depends="init" description="Compile Java source" >
 	<javac srcdir="${javasrc}" destdir="${classes}" nowarn="on">
     <!--<javac source="1.5" srcdir="${javasrc}" destdir="${classes}" nowarn="on">-->
+		<compilerarg line="-Xmaxerrs 10"/>
 		<classpath> 
 			<!--classpath-->
 			<pathelement path="${classes}"/> 
