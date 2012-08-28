@@ -27,7 +27,7 @@ import ij.io.FileOpener;			/*For saving result stack*/
  Result is displayed as a binary image. Works with 3D images stack.
  */
 
-public class IJGrowerLBPXCorrSeed implements PlugIn {
+public class IJGrowerLBPXCorrSeedCheck implements PlugIn {
 	private int[] seedPoints;
 	private double diffLimit;
 	private boolean threeD;
@@ -90,15 +90,15 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 					tempData[c][r] = (double) temp[c+r*width];
 				}
 			}
-			
+			/*
 			Thread newThread = new MultiThreaderLBPandGradient(tempData,d);
 			newThread.start();
 			threads.add(newThread);
-			
+			*/
 			//IJ.log("Slice "+(d+1)+"/"+depth+" threading");
         }
 		//Catch the slice threads
-		
+		/*
 		for (int t = 0; t<threads.size();++t){
 			try{
 				((Thread) threads.get(t)).join();
@@ -116,7 +116,7 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 				}
 			}
 		}
-		
+		*/
 		
 		
 		
@@ -184,8 +184,12 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 				}
 			}
 		}
-        
+        /*
 		double[] meanAndArea;
+		
+
+		
+		
 		
 		//Test LBP Grow
 		//Get LBP model histogram
@@ -252,6 +256,10 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 			
 		}
 		
+		
+		
+
+		
 		//Dump out the results
 		IJ.log("Starting File Dump");
 		WriteMat writeMat = new WriteMat(fileDump);
@@ -259,7 +267,8 @@ public class IJGrowerLBPXCorrSeed implements PlugIn {
 		writeMat.writeArray(segmentationMask,"mask");
 		writeMat.closeFile();
 		IJ.log("File Dump done");
-				
+		*/
+		
 		//Visualize result
 		
 		Calibration calibration = imp.getCalibration();
